@@ -1,0 +1,9 @@
+.vscode/*
+bin/
+.DS_Store
+*.o
+*.sym
+*.lst
+*.prg
+*.log
+buildlog.txt
