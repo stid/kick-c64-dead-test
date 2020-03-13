@@ -13,3 +13,7 @@ cardbin: build
 
 clean:
 	rm -Rf ${BUILD_PATH}
+
+orig:
+	java -jar ${KICKASS_BIN} -odir ../${BUILD_PATH} -log ${BUILD_PATH}/buildlog.txt -showmem ./src/781220.asm
+	cartconv -t ulti -name "dead-test" -i ${BUILD_PATH}/781220.prg -o ${BUILD_PATH}/dead-test.crt
