@@ -2,12 +2,13 @@
 #import "./zeropage.asm"
 #import "./main.asm"
 #import "./u_failure.asm"
+#import "./constants.asm"
 
 ///////      ZERO PAGE TEST
 zeroPageTest: {
                 ldx #$08
         !:      lda strZero,x   // Print Zero Page String
-                sta $0450,x
+                sta VIDEO_RAM+$50,x
                 dex
                 bpl !-
 
@@ -34,9 +35,9 @@ zeroPageTest: {
 
                 // Zero Page Pattern Test OK
                 lda #$0f         //"o"
-                sta $045d
+                sta VIDEO_RAM+$5d
                 lda #$0b         //"k"
-                sta $045e
+                sta VIDEO_RAM+$5e
                 jmp main.goStackPageTest
 
                 // Zero Page Pattern Test BAD
@@ -44,10 +45,10 @@ zeroPageTest: {
                 eor MemTestPattern,x
                 tax
                 lda #$02         //"b"
-                sta $045d
+                sta VIDEO_RAM+$5d
                 lda #$01         //"a"
-                sta $045e
+                sta VIDEO_RAM+$5e
                 lda #$04         //"d"
-                sta $045f
+                sta VIDEO_RAM+$5f
                 jmp testU
 }

@@ -138,10 +138,14 @@ main: {
                 dex
                 bne !-
 
+                // Cycle border color based on actual counter
+                lda counterLow
+                sta VIC2_BORDERCOLOUR
+
                 // About string
-                ldx #$16
+                ldx #$1c
         !:      lda strAbout,x
-                sta VIDEO_RAM+$8,x
+                sta VIDEO_RAM+$6,x
                 dex
                 bpl !-
                 ldx #$04
@@ -226,6 +230,7 @@ main: {
         !:      sta VIDEO_RAM+$200,x
                 dex
                 bpl !-
+
                 jmp main.initVic
 }
 
@@ -241,6 +246,7 @@ main: {
 
 
 #import "./data.asm"
+#import "./zeropage.asm"
 
 prefill:
 

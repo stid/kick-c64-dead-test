@@ -1,9 +1,7 @@
 #importonce
 #import "./zeropage.asm"
+#import "./constants.asm"
 
-
-.const  BORDER_COLOR            = $05
-.const  BACKGROUND_COLOR        = $01
 
 
 vicMap:
@@ -11,7 +9,7 @@ vicMap:
         .byte $00,$00,$00,$00,$00,$00,$00,$00
         .byte $00,$1b,$00,$00,$00,$00,$08,$00
         .byte $12,$00,$00,$00,$00,$00,$00,$00
-        .byte BORDER_COLOR,BACKGROUND_COLOR,$00,$00,$00,$00,$00,$00
+        .byte INITIAL_BORDER_COLOR,INITIAL_BACKGROUND_COLOR,$00,$00,$00,$00,$00,$00
         .byte $00,$00,$00,$00,$00,$00
 
 cia1Table:
@@ -30,7 +28,7 @@ colorRamPattern:
 
 
 .encoding "screencode_mixed"
-strAbout:   .text "c-64 dead test rev stid"
+strAbout:   .text "c-64 dead test rev stid 1.0.0"
 strCount:   .text "count"
 strZero:    .text "zero page"
 strStack:   .text "stack page"

@@ -51,3 +51,11 @@
 .label COLOR_VIDEO_RAM          = $d800
 
 .label STACK_MEM                = $100
+
+//
+.label  FAIL_COLOR              = $02
+.label  BOX_BORDER_COLOR        = $02
+
+.label  INITIAL_BORDER_COLOR            = $05
+.label  INITIAL_BACKGROUND_COLOR        = $01
+
