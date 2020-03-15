@@ -4,6 +4,9 @@
 #import "./u_failure.asm"
 #import "./constants.asm"
 
+
+        * = * "screen ram test"
+
 ///////      SCREEN RAM TEST
 screenRamTest: {
                 ldx #$09
@@ -18,22 +21,22 @@ screenRamTest: {
                 sty tmpSourceAddressHigh
         screenRamTestLoop:
                 ldy #$00
-                lda (tmpTargetPointer),y
+                lda (tmpSourceAddressLow),y
                 pha
                 ldx #$13
         screenRamPatternTestLoop:
                 lda MemTestPattern,x
-                sta (tmpTargetPointer),y
+                sta (tmpSourceAddressLow),y
 
                 ShortDelayLoop(0)
 
-                lda (tmpTargetPointer),y
+                lda (tmpSourceAddressLow),y
                 cmp MemTestPattern,x
                 bne screenRamTestFailed
                 dex
                 bpl screenRamPatternTestLoop
                 pla
-                sta (tmpTargetPointer),y
+                sta (tmpSourceAddressLow),y
                 inc tmpSourceAddressLow
                 bne !+
                 inc tmpSourceAddressHigh         // > 255

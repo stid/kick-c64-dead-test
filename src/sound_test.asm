@@ -4,6 +4,8 @@
 #import "./u_failure.asm"
 #import "./constants.asm"
 
+        * = * "sound test"
+
 
 soundTest: {
                 ldx #$09

@@ -2,6 +2,7 @@
 #import "./data.asm"
 #import "./constants.asm"
 
+        * = * "cia timers"
 
 .enum {
         CIA1_HOUR_STEP=$01,

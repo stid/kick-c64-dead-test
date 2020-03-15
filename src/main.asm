@@ -6,25 +6,15 @@
 // Revisited flow by =stid=
 //-------------------------------------------
 //
-#import "./zeropage.asm"
+#import "./zeropage_map.asm"
 #import "./constants.asm"
 
         * = $e000 "Main"
 
 #import "./main_loop.asm"
-#import "./mem_bank_test.asm"
-#import "./zero_page_test.asm"
-#import "./stack_page_test.asm"
-#import "./cia_timers.asm"
-#import "./screen_ram_test.asm"
-#import "./color_ram_test.asm"
-#import "./ram_test.asm"
-#import "./font_test.asm"
-#import "./sound_test.asm"
-
 
 #import "./data.asm"
-#import "./zeropage.asm"
+#import "./zeropage_map.asm"
 
 prefill:
 
@@ -34,11 +24,11 @@ prefill:
 //      Vectors below will grant start control
 .fill ($ffff-prefill-5), $aa
 
-         *=$fffa
+         *=$fffa        "Non-Maskable Interrupt Hardware Vector"
          .word mainLoop
-         *=$fffc
+         *=$fffc        "System Reset (RES) Hardware Vector"
          .word mainLoop
-         *=$fffe
+         *=$fffe        "Maskable Interrupt Request and Break Hardware Vectors"
          .word mainLoop
 
 //---------------------------------------

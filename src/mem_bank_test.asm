@@ -1,9 +1,10 @@
 #importonce
 #import "./macros.asm"
-#import "./zeropage.asm"
+#import "./zeropage_map.asm"
 #import "./data.asm"
 #import "./main_loop.asm"
 
+        * = * "mem bank test"
 
 ///////      MEMORY BANK TEST
 memBankTest: {
@@ -95,8 +96,8 @@ memBankTest: {
                 jmp memPatternSetLoop   // back to pattern loop with new x pointer
 
         memTestDone:
-                jmp mainLoop.drawLayout     //memtest ok, go to next stage
-                                        // we can't use stack here - not tested yet
+                jmp mainLoop.memBankTestDone     //memtest ok, go to next stage
+                                                // we can't use stack here - not tested yet
 
         memFailureFlash: {
                                         // Given actual pattern, indentify what's failed

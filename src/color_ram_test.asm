@@ -4,6 +4,8 @@
 #import "./u_failure.asm"
 #import "./constants.asm"
 
+        * = * "color ram test"
+
 
 ///////      COLOR RAM TEST
 colorRamTest: {
@@ -20,23 +22,23 @@ colorRamTest: {
                 ldy #$00
         colorRamTestLoop:
                 ldy #$00
-                lda (tmpTargetPointer),y
+                lda (tmpSourceAddressLow),y
                 pha
                 ldx #$0b
         colorRamPattermTestLoop:
                 lda colorRamPattern,x
-                sta (tmpTargetPointer),y
+                sta (tmpSourceAddressLow),y
 
                 ShortDelayLoop(0)
 
-                lda (tmpTargetPointer),y
+                lda (tmpSourceAddressLow),y
                 and #$0f
                 cmp colorRamPattern,x
                 bne colorRamTestFailed
                 dex
                 bpl colorRamPattermTestLoop
                 pla
-                sta (tmpTargetPointer),y
+                sta (tmpSourceAddressLow),y
                 inc tmpSourceAddressLow
                 bne !+          // > 255
                 inc tmpSourceAddressHigh

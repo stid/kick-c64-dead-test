@@ -1,10 +1,10 @@
 #importonce
-#import "./zeropage.asm"
+#import "./zeropage_map.asm"
 #import "./constants.asm"
 
+        * = * "data"
 
-
-vicMap:
+vicDefaultValues:
         .byte $00,$00,$00,$00,$00,$00,$00,$00
         .byte $00,$00,$00,$00,$00,$00,$00,$00
         .byte $00,$1b,$00,$00,$00,$00,$08,$00

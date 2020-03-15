@@ -1,7 +1,10 @@
 #importonce
-#import "./zeropage.asm"
+#import "./zeropage_map.asm"
 #import "./constants.asm"
 #import "./mem_bank_test.asm"
+
+
+        * = * "main loop"
 
 mainLoop: {
                 sei                             // Set Interrupt
@@ -19,112 +22,14 @@ mainLoop: {
 
                 jmp memBankTest                 // Ram test first, screen is black here
 
+        memBankTestDone:
                 // At this point RAM is working
                 // program draw main interface layout
-        drawLayout:
-                lda #<font
-                ldx #>font
-                sta tmpSourceAddressLow         // Source Address
-                stx tmpSourceAddressHigh
-                lda #<$0800
-                ldx #>$0800
-                sta tmpDestAddressLow           // Dest Address
-                stx tmpDestAddressHigh
-                ldx #$01
-                ldy #$00
-        fontCopyLoop:
-                lda (tmpTargetPointer),y        // Load from source
-                sta (tmpDestPointer),y          // Write to dest
-                iny
-                bne fontCopyLoop
-                inc tmpSourceAddressHigh
-                inc tmpDestAddressHigh
-                dex
-                bpl fontCopyLoop                // Loop until -1
+                jmp     drawLayout
 
-                // Clear CIA timers
-                // Start from $Dx07 down to $Dx03
-                ldx #$04
-        !:      lda cia1Table,x
-                sta CIA1_TIMER_B_HIGH, x
-                lda cia2Table,x
-                sta CIA2_TIMER_B_HIGH, x
-                dex
-                bne !-
-
-                // Reset Counter
-                ldx #$00
-                stx counterLow
-                stx counterHigh
-
-
-                ldx #$00                        // Cleanup Screen
-        clanScreenLoop:
-                lda #$20
-                sta VIDEO_RAM,x                 // Video Mem
-                sta VIDEO_RAM+$100,x
-                sta VIDEO_RAM+$200,x
-                sta VIDEO_RAM+$300,x
-
-                lda #$06
-                sta COLOR_VIDEO_RAM,x           // Color Videa Mem
-                sta COLOR_VIDEO_RAM+$100,x
-                sta COLOR_VIDEO_RAM+$200,x
-                sta COLOR_VIDEO_RAM+$300,x
-                inx
-                bne clanScreenLoop
-
-                // Upper Box
-                ldx #$27
-        !:      lda upBox,x                     // Load Box Bytes
-                sta VIDEO_RAM+$230,x            // Store in Mem
-                lda #BOX_BORDER_COLOR           // Color Red
-                sta COLOR_VIDEO_RAM+$230,x
-                dex
-                bpl !-
-
-                // Box border & Area
-                ldx #$00
-        !:      lda boxArea,x
-                cmp #$ff
-                beq boxFill
-                sta VIDEO_RAM+$258,x
-                inx
-                jmp !-
-
-                // Box Color fill
-        boxFill:
-                ldx #$00
-        !:      lda boxColor,x                  // color
-                cmp #$ff
-                beq drawLowerBox
-                sta COLOR_VIDEO_RAM+$258,x
-                inx
-                jmp !-
-
-                // Lower Box
-        drawLowerBox:
-                ldx #$27
-        !:      lda lowBox,x
-                sta VIDEO_RAM+$0348,x
-                lda #BOX_BORDER_COLOR           // Color red
-                sta COLOR_VIDEO_RAM+$0348,x
-                dex
-                bpl !-
-
-                // Set CIA timers
-                lda #$08
-                sta CIA1_CONTROL_TIMER_B
-                sta CIA2_CONTROL_TIMER_B
-                lda #$48
-                sta CIA1_CONTROL_TIMER_A
-                lda #$08
-                sta CIA2_CONTROL_TIMER_A
-
-                // Init VIC
         initVic:
                 ldx #$2f                        // Init VIC values
-        !:      lda vicMap-1, x
+        !:      lda vicDefaultValues-1, x
                 sta $cfff, x
                 dex
                 bne !-
@@ -176,18 +81,21 @@ mainLoop: {
                 lda #$37
                 sta ZProcessPortBit
 
-                jmp zeroPageTest
-        goStackPageTest:
-                jmp stackPageTest
+                jmp zeroPageTest        // TEST ZERO PAGE
 
-        testSetB:
-                jsr updateCia1Time
+        zeroPageTestDone:
+                jmp stackPageTest       // TEST STACK
+
+        stackPageTestDone:              // If here, RAM, Zero Page & Stack are ok
+                jsr updateCia1Time      // We can move to JSR and more complex tests
                 jsr screenRamTest
                 jsr updateCia1Time
                 jsr colorRamTest
                 jsr updateCia1Time
                 jsr ramTest
+                jsr updateCia1Time
                 jsr fontTest
+                jsr updateCia1Time
                 jsr soundTest
 
                 //                      Prepare to Restart
@@ -224,3 +132,14 @@ mainLoop: {
 
                 jmp mainLoop.initVic
 }
+
+#import "./layout.asm"
+#import "./mem_bank_test.asm"
+#import "./zero_page_test.asm"
+#import "./stack_page_test.asm"
+#import "./cia_timers.asm"
+#import "./screen_ram_test.asm"
+#import "./color_ram_test.asm"
+#import "./ram_test.asm"
+#import "./font_test.asm"
+#import "./sound_test.asm"

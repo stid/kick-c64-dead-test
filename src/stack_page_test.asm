@@ -5,8 +5,9 @@
 #import "./main.asm"
 #import "./constants.asm"
 
+        * = * "stack page test"
 
-///////      STACK TRACE TEST
+///////      STACK PAGE TEST
 stackPageTest: {
                 ldx #$09
         !:      lda strStack,x      // stack page label
@@ -37,7 +38,7 @@ stackPageTest: {
                 sta VIDEO_RAM+$85
                 lda #$0b         //"k"
                 sta VIDEO_RAM+$86
-                jmp mainLoop.testSetB       // Done with stack - progress to nect chunk of tests
+                jmp mainLoop.stackPageTestDone       // Done with stack - progress to nect chunk of tests
 
         stackPageFailed:
                 eor MemTestPattern,x      //memtest pattern

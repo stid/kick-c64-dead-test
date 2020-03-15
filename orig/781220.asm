@@ -159,7 +159,7 @@ main: {
 
         initVic:
                 ldx #$2f            // Init VIC values
-        !:      lda vicMap-1,x
+        !:      lda vicDefaultValues-1,x
                 sta $cfff,x
                 dex
                 bne !-
@@ -1135,7 +1135,7 @@ UpdateCia2Time: {
 }
 
 
-vicMap:
+vicDefaultValues:
         .byte $00,$00,$00,$00,$00,$00,$00,$00
         .byte $00,$00,$00,$00,$00,$00,$00,$00
         .byte $00,$1b,$00,$00,$00,$00,$08,$00

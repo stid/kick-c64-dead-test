@@ -1,8 +1,11 @@
 #importonce
-#import "./zeropage.asm"
+#import "./zeropage_map.asm"
 #import "./main_loop.asm"
 #import "./u_failure.asm"
 #import "./constants.asm"
+
+
+        * = * "zero page test"
 
 ///////      ZERO PAGE TEST
 zeroPageTest: {
@@ -38,7 +41,7 @@ zeroPageTest: {
                 sta VIDEO_RAM+$5d
                 lda #$0b         //"k"
                 sta VIDEO_RAM+$5e
-                jmp mainLoop.goStackPageTest
+                jmp mainLoop.zeroPageTestDone
 
                 // Zero Page Pattern Test BAD
         zeroPagePatternFailed:

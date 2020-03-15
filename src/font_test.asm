@@ -4,6 +4,10 @@
 #import "./macros.asm"
 #import "./u_failure.asm"
 #import "./constants.asm"
+#import "./zeropage_map.asm"
+
+        * = * "font test"
+
 
 fontTest: {
     ///////      FONT TESTS
@@ -18,14 +22,13 @@ fontTest: {
             ldx #$01
             ldy #$00
     copyFontLoop:
-            lda (tmpTargetPointer),y
-            sta (tmpDestPointer),y
+            lda (tmpSourceAddressLow),y
+            sta (tmpDestAddressLow),y
             iny
             bne copyFontLoop
             inc tmpSourceAddressHigh
             inc tmpDestAddressHigh
             dex
             bpl copyFontLoop
-            jsr updateCia1Time
             rts
 }

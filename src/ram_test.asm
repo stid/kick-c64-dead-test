@@ -4,6 +4,8 @@
 #import "./u_failure.asm"
 #import "./constants.asm"
 
+        * = * "ram test"
+
 
 ///////      RAM TEST
 ramTest: {
@@ -23,11 +25,11 @@ ramTest: {
                 ldx #$13
         RamTestPatternLoop:
                 lda MemTestPattern,x
-                sta (tmpTargetPointer),y
+                sta (tmpSourceAddressLow),y
 
                 ShortDelayLoop($7f)
 
-                lda (tmpTargetPointer),y
+                lda (tmpSourceAddressLow),y
                 cmp MemTestPattern,x
                 bne RamTestFailed
                 dex

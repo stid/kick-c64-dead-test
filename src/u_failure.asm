@@ -1,6 +1,9 @@
 #importonce
-#import "./zeropage.asm"
+#import "./zeropage_map.asm"
 #import "./constants.asm"
+
+
+        * = * "u failure"
 
 //////       TEST FAILED U
 testU: {
