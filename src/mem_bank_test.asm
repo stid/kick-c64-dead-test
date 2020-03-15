@@ -101,7 +101,7 @@ memBankTest: {
 
         memFailureFlash: {
                                         // Given actual pattern, indentify what's failed
-                // Bank 8 Failed
+                        // Bank 8 Failed
                         eor MemTestPattern,x
                         tax
                         and #$fe

@@ -9,7 +9,6 @@
 
 ///////      RAM TEST
 ramTest: {
-
                 ldx #$07
         !:      lda strRam,x      // ram test label
                 sta VIDEO_RAM+$f0,x

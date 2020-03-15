@@ -106,5 +106,14 @@ drawLayout: {
             sta CIA1_CONTROL_TIMER_A
             lda #$08
             sta CIA2_CONTROL_TIMER_A
+
+             ldx #39
+      !:     txa
+             sta COLOR_VIDEO_RAM+$398, x
+             lda #$3a
+             sta VIDEO_RAM+$398, x
+             dex
+             bpl !-
+
             jmp mainLoop.initVic            // Stack not tested yet, we need to explicit JMP back
 }
