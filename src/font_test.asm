@@ -1,5 +1,5 @@
 #importonce
-#import "./main.asm"
+#import "./main_loop.asm"
 #import "./data.asm"
 #import "./macros.asm"
 #import "./u_failure.asm"

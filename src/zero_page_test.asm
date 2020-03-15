@@ -1,6 +1,6 @@
 #importonce
 #import "./zeropage.asm"
-#import "./main.asm"
+#import "./main_loop.asm"
 #import "./u_failure.asm"
 #import "./constants.asm"
 
@@ -38,7 +38,7 @@ zeroPageTest: {
                 sta VIDEO_RAM+$5d
                 lda #$0b         //"k"
                 sta VIDEO_RAM+$5e
-                jmp main.goStackPageTest
+                jmp mainLoop.goStackPageTest
 
                 // Zero Page Pattern Test BAD
         zeroPagePatternFailed:

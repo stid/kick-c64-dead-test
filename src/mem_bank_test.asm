@@ -2,7 +2,7 @@
 #import "./macros.asm"
 #import "./zeropage.asm"
 #import "./data.asm"
-#import "./main.asm"
+#import "./main_loop.asm"
 
 
 ///////      MEMORY BANK TEST
@@ -95,7 +95,7 @@ memBankTest: {
                 jmp memPatternSetLoop   // back to pattern loop with new x pointer
 
         memTestDone:
-                jmp main.drawLayout     //memtest ok, go to next stage
+                jmp mainLoop.drawLayout     //memtest ok, go to next stage
                                         // we can't use stack here - not tested yet
 
         memFailureFlash: {
