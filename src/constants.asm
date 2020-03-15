@@ -49,3 +49,5 @@
 
 .label VIDEO_RAM                = $400
 .label COLOR_VIDEO_RAM          = $d800
+
+.label STACK_MEM                = $100

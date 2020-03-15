@@ -3,13 +3,14 @@
 #import "./macros.asm"
 #import "./u_failure.asm"
 #import "./main.asm"
+#import "./constants.asm"
 
 
 ///////      STACK TRACE TEST
 stackPageTest: {
                 ldx #$09
         !:      lda strStack,x      // stack page label
-                sta $0478,x
+                sta VIDEO_RAM+$78,x
                 dex
                 bpl !-
 
@@ -17,7 +18,7 @@ stackPageTest: {
         stackPagePatternLoop:
                 lda MemTestPattern,x
                 ldy #$00
-        !:      sta $0100,y
+        !:      sta STACK_MEM, y
                 iny
                 bne !-
 
@@ -26,26 +27,26 @@ stackPageTest: {
                 // Test Stack Pattern consistency
                 tax
                 lda MemTestPattern,x
-        !:      cmp $0100,y
+        !:      cmp STACK_MEM, y
                 bne stackPageFailed
                 iny
                 bne !-
                 dex
                 bpl stackPagePatternLoop
                 lda #$0f         //"o"
-                sta $0485
+                sta VIDEO_RAM+$85
                 lda #$0b         //"k"
-                sta $0486
+                sta VIDEO_RAM+$86
                 jmp main.testSetB       // Done with stack - progress to nect chunk of tests
 
         stackPageFailed:
                 eor MemTestPattern,x      //memtest pattern
                 tax
                 lda #$02         //"b"
-                sta $0485
+                sta VIDEO_RAM+$85
                 lda #$01         //"a"
-                sta $0486
+                sta VIDEO_RAM+$86
                 lda #$04         //"d"
-                sta $0487
+                sta VIDEO_RAM+$87
                 jmp testU
 }
