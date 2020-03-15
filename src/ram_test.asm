@@ -2,6 +2,7 @@
 #import "./data.asm"
 #import "./macros.asm"
 #import "./u_failure.asm"
+#import "./constants.asm"
 
 
 ///////      RAM TEST
@@ -9,7 +10,7 @@ ramTest: {
 
                 ldx #$07
         !:      lda strRam,x      // ram test label
-                sta $04f0,x
+                sta VIDEO_RAM+$f0,x
                 dex
                 bpl !-
 
@@ -38,18 +39,18 @@ ramTest: {
                 cmp #$10
                 bne RamTestLoop
                 lda #$0f         //"o"
-                sta $04fd
+                sta VIDEO_RAM+$fd
                 lda #$0b         //"k"
-                sta $04fe
+                sta VIDEO_RAM+$fe
                 rts
 
         RamTestFailed:
                 eor MemTestPattern,x
                 tax
                 lda #$02         //"b"
-                sta $04fd
+                sta VIDEO_RAM+$fd
                 lda #$01         //"a"
-                sta $04fe
+                sta VIDEO_RAM+$fe
                 lda #$04         //"d"
-                sta $04ff
+                sta VIDEO_RAM+$ff
 }

@@ -1,47 +1,58 @@
 #importonce
 #import "./data.asm"
+#import "./constants.asm"
 
+
+.enum {
+        CIA1_HOUR_STEP=$01,
+        CIA1_MIN_STEP=$02,
+        CIA1_SEC_STEP=$03,
+        CIA_CALC_STEP=$04,
+        CIA2_HOUR_STEP=$05,
+        CIA2_MIN_STEP=$06,
+        CIA2_SEC_STEP=$07
+        }
 
 // CIA 1
 updateCia1Time: {
-                lda $dc0b
+                lda CIA1_REAL_TIME_HOUR
                 clc
                 asl
                 bcc setAm
                 lda #$10         //"p"
-                sta $07db
+                sta VIDEO_RAM+$03db
                 lda #$0d         //"m"
-                sta $07dc
+                sta VIDEO_RAM+$03dc
                 clc
                 bcc !+
         setAm:  lda #$01         //"a"
-                sta $07db
+                sta VIDEO_RAM+$03db
                 lda #$0d         //"m"
-                sta $07dc
-        !:      lda $dc0b
+                sta VIDEO_RAM+$03dc
+        !:      lda CIA1_REAL_TIME_HOUR
                 and #$7f
-                ldy #$01
+                ldy #CIA1_HOUR_STEP
                 bne calcTime
         setHour:
-                sta $07d3        //xx-00-00
-                stx $07d4
+                sta VIDEO_RAM+$03d3        //xx-00-00
+                stx VIDEO_RAM+$03d4
                 lda #$2d         //"-"
-                sta $07d5
-                lda $dc0a
-                ldy #$02
+                sta VIDEO_RAM+$03d5
+                lda CIA1_REAL_TIME_MIN
+                ldy #CIA1_MIN_STEP
                 bne calcTime
         setMinute:
-                sta $07d6        //00-xx-00
-                stx $07d7
+                sta VIDEO_RAM+$03d6        //00-xx-00
+                stx VIDEO_RAM+$03d7
                 lda #$2d         //"-"
-                sta $07d8
-                lda $dc09
-                ldy #$03
+                sta VIDEO_RAM+$03d8
+                lda CIA1_REAL_TIME_SEC
+                ldy #CIA1_SEC_STEP
                 bne calcTime
         setSecond:
-                sta $07d9        //00-00-xx
-                stx $07da
-                lda $dc08
+                sta VIDEO_RAM+$03d9        //00-00-xx
+                stx VIDEO_RAM+$03da
+                lda CIA1_REAL_TIME_10THS
 
                 clc
                 bcc UpdateCia2Time
@@ -49,11 +60,10 @@ updateCia1Time: {
 }
 
 
-
 calcTime:  {
                 pha
                 sty tmpY
-                ldy #$04
+                ldy #CIA_CALC_STEP
                 bne done
         loop:   ldy tmpY
                 tax
@@ -69,19 +79,19 @@ calcTime:  {
                 sbc #$09
                 bne !+
         ie74c:  ora #$30
-        !:      cpy #$01
+        !:      cpy #CIA1_HOUR_STEP
                 beq updateCia1Time.setHour
-                cpy #$02
+                cpy #CIA1_MIN_STEP
                 beq updateCia1Time.setMinute
-                cpy #$03
+                cpy #CIA1_SEC_STEP
                 beq updateCia1Time.setSecond
-                cpy #$04
+                cpy #CIA_CALC_STEP
                 beq loop
-                cpy #$05
+                cpy #CIA2_HOUR_STEP
                 beq UpdateCia2Time.setHour
-                cpy #$06
+                cpy #CIA2_MIN_STEP
                 beq UpdateCia2Time.setMinue
-                cpy #$07
+                cpy #CIA2_SEC_STEP
                 beq UpdateCia2Time.setSecond
                 rts
 }
@@ -89,43 +99,43 @@ calcTime:  {
 
 // CIA 2
 UpdateCia2Time: {
-                lda $dd0b
+                lda CIA2_REAL_TIME_HOUR
                 clc
                 asl
                 bcc setAm
                 lda #$10         //"p"
-                sta $07e6
+                sta VIDEO_RAM+$03e6
                 lda #$0d         //"m"
-                sta $07e7
+                sta VIDEO_RAM+$03e7
                 clc
                 bcc !+
         setAm:  lda #$01         //"a"
-                sta $07e6
+                sta VIDEO_RAM+$03e6
                 lda #$0d         //"m"
-                sta $07e7
-        !:  lda $dd0b
+                sta VIDEO_RAM+$03e7
+        !:      lda CIA2_REAL_TIME_HOUR
                 and #$7f
                 ldy #$05
         ie790:  bne calcTime
         setHour:
-                sta $07de        //xx-00-00
-                stx $07df
+                sta VIDEO_RAM+$03de        //xx-00-00
+                stx VIDEO_RAM+$03df
                 lda #$2d         //"-"
-                sta $07e0
-                lda $dd0a
+                sta VIDEO_RAM+$03e0
+                lda CIA2_REAL_TIME_MIN
                 ldy #$06
                 bne ie790
         setMinue:
-                sta $07e1        //00-xx-00
-                stx $07e2
+                sta VIDEO_RAM+$03e1        //00-xx-00
+                stx VIDEO_RAM+$03e2
                 lda #$2d         //"-"
-                sta $07e3
-                lda $dd09
+                sta VIDEO_RAM+$03e3
+                lda CIA2_REAL_TIME_SEC
                 ldy #$07
                 bne ie790
         setSecond:
-                sta $07e4        //00-00-xx
-                stx $07e5
-                lda $dd08
+                sta VIDEO_RAM+$03e4        //00-00-xx
+                stx VIDEO_RAM+$03e5
+                lda CIA2_REAL_TIME_10THS
                 rts
 }

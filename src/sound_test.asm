@@ -2,109 +2,110 @@
 #import "./data.asm"
 #import "./macros.asm"
 #import "./u_failure.asm"
+#import "./constants.asm"
 
 
 soundTest: {
                 ldx #$09
         !:      lda strSound,x      //label sound test
-                sta $0518,x
+                sta VIDEO_RAM+$118,x
                 dex
                 bpl !-
 
                 lda #$14
-                sta $d418
+                sta SID_FILTER_VOL
                 lda #$00
-                sta $d417
+                sta SID_FILTER_RES_ROUT
                 lda #$3e
-                sta $d405
+                sta SID_VOICE_1_ATK_DEC
                 lda #$ca
-                sta $d406
+                sta SID_VOICE_1_SUS_VOL_REL
                 lda #$00
-                sta $d412
+                sta SID_VOICE_3_CTRL
                 lda #$02
         mainLoop:
                 pha
                 ldx #$06
         loopA:  lda sound1,x
-                sta $d401
+                sta SID_VOICE_1_FREQ_H
                 lda sound2,x
-                sta $d400
+                sta SID_VOICE_1_FREQ_L
                 pla
                 tay
                 lda sound8,y
-                sta $d402
+                sta SID_VOICE_1_PULSE_L
                 lda sound9,y
-                sta $d403
+                sta SID_VOICE_1_PULSE_H
                 lda sound7,y
-                sta $d404
+                sta SID_VOICE_1_CTRL
                 tya
                 pha
                 lda #$6a
                 jsr pauseOrExit
                 lda #$00
-                sta $d404
+                sta SID_VOICE_1_CTRL
                 lda #$00
                 jsr pauseOrExit
                 dex
                 bne loopA
                 lda #$00
-                sta $d417
+                sta SID_FILTER_RES_ROUT
                 lda #$18
-                sta $d418
+                sta SID_FILTER_VOL
                 lda #$3e
-                sta $d40c
+                sta SID_VOICE_2_ATK_DEC
                 lda #$ca
-                sta $d40d
+                sta SID_VOICE_2_SUS_VOL_REL
                 ldx #$06
         loopB:  lda sound3,x
-                sta $d408
+                sta SID_VOICE_2_FREQ_H
                 lda sound4,x
-                sta $d407
+                sta SID_VOICE_2_FREQ_L
                 pla
                 tay
                 lda sound8,y
-                sta $d409
+                sta SID_VOICE_2_PULSE_L
                 lda sound9,y
-                sta $d40a
+                sta SID_VOICE_2_PULSE_H
                 lda sound7,y
-                sta $d40b
+                sta SID_VOICE_2_CTRL
                 tya
                 pha
                 lda #$6a
                 jsr pauseOrExit
                 lda #$00
-                sta $d40b
+                sta SID_VOICE_2_CTRL
                 lda #$00
                 jsr pauseOrExit
                 dex
                 bne loopB
                 lda #$00
-                sta $d417
+                sta SID_FILTER_RES_ROUT
                 lda #$1f
-                sta $d418
+                sta SID_FILTER_VOL
                 lda #$3e
-                sta $d413
+                sta SID_VOICE_3_ATK_DEC
                 lda #$ca
-                sta $d414
+                sta SID_VOICE_3_SUS_VOL_REL
                 ldx #$06
         loopC:  lda sound5,x
-                sta $d40f
+                sta SID_VOICE_3_FREQ_H
                 lda sound6,x
-                sta $d40e
+                sta SID_VOICE_3_FREQ_L
                 pla
                 tay
                 lda sound8,y
-                sta $d410
+                sta SID_VOICE_3_PULSE_L
                 lda sound9,y
-                sta $d411
+                sta SID_VOICE_3_PULSE_H
                 lda sound7,y
-                sta $d412
+                sta SID_VOICE_3_CTRL
                 tya
                 pha
                 lda #$6a
                 jsr pauseOrExit
                 lda #$00
-                sta $d412
+                sta SID_VOICE_3_CTRL
                 lda #$00
                 jsr pauseOrExit
                 dex

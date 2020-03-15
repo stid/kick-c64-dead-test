@@ -7,25 +7,26 @@
 //-------------------------------------------
 //
 #import "./zeropage.asm"
+#import "./constants.asm"
 
         * = $e000 "Main"
 
 
 main: {
-                sei                     // Set Interrupt
+                sei                             // Set Interrupt
                 ldx #$ff
                 txs
                 cld
-                lda #$e7                // Set IO registers
+                lda #$e7                        // Set IO registers
                 sta ZProcessPortBit
-                lda #$37                // Set Data direction
+                lda #$37                        // Set Data direction
                 sta ZProcessDataDir
 
-                lda #$00                // Set video to Black
-                sta $d020               // Border color (only bits #0-#3).
-                sta $d021               // Background color (only bits #0-#3).
+                lda #$00                        // Set video to Black
+                sta VIC2_BORDERCOLOUR           // Border color (only bits #0-#3).
+                sta VIC2_BGCOLOUR               // Background color (only bits #0-#3).
 
-                jmp memBankTest
+                jmp memBankTest                 // Ram test first, screen is black here
 
                 // At this point RAM is working
                 // program draw main interface layout
@@ -36,26 +37,27 @@ main: {
                 stx tmpSourceAddressHigh
                 lda #<$0800
                 ldx #>$0800
-                sta tmpDestAddressLow         // Dest Address
+                sta tmpDestAddressLow           // Dest Address
                 stx tmpDestAddressHigh
                 ldx #$01
                 ldy #$00
         fontCopyLoop:
-                lda (tmpTargetPointer),y     // Load from source
-                sta (tmpDestPointer),y     // Write to dest
+                lda (tmpTargetPointer),y        // Load from source
+                sta (tmpDestPointer),y          // Write to dest
                 iny
                 bne fontCopyLoop
                 inc tmpSourceAddressHigh
                 inc tmpDestAddressHigh
                 dex
-                bpl fontCopyLoop        // Loop until -1
+                bpl fontCopyLoop                // Loop until -1
 
                 // Clear CIA timers
+                // Start from $Dx07 down to $Dx03
                 ldx #$04
         !:      lda cia1Table,x
-                sta $dc07,x
+                sta CIA1_TIMER_B_HIGH, x
                 lda cia2Table,x
-                sta $dd07,x
+                sta CIA2_TIMER_B_HIGH, x
                 dex
                 bne !-
 
@@ -65,27 +67,28 @@ main: {
                 stx counterHigh
 
 
-                ldx #$00                // Cleanup Screen
+                ldx #$00                        // Cleanup Screen
         clanScreenLoop:
                 lda #$20
-                sta $0400,x             // Video Mem
-                sta $0500,x
-                sta $0600,x
-                sta $0700,x
+                sta VIDEO_RAM,x                 // Video Mem
+                sta VIDEO_RAM+$100,x
+                sta VIDEO_RAM+$200,x
+                sta VIDEO_RAM+$300,x
+
                 lda #$06
-                sta $d800,x             // Color Videa Mem
-                sta $d900,x
-                sta $da00,x
-                sta $db00,x
+                sta COLOR_VIDEO_RAM,x           // Color Videa Mem
+                sta COLOR_VIDEO_RAM+$100,x
+                sta COLOR_VIDEO_RAM+$200,x
+                sta COLOR_VIDEO_RAM+$300,x
                 inx
                 bne clanScreenLoop
 
                 // Upper Box
                 ldx #$27
-        !:      lda upBox,x             // Load Box Bytes
-                sta $0630,x             // Store in Mem
-                lda #BOX_BORDER_COLOR                // Color Red
-                sta $da30,x
+        !:      lda upBox,x                     // Load Box Bytes
+                sta VIDEO_RAM+$230,x            // Store in Mem
+                lda #BOX_BORDER_COLOR           // Color Red
+                sta COLOR_VIDEO_RAM+$230,x
                 dex
                 bpl !-
 
@@ -94,17 +97,17 @@ main: {
         !:      lda boxArea,x
                 cmp #$ff
                 beq boxFill
-                sta $0658,x
+                sta VIDEO_RAM+$258,x
                 inx
                 jmp !-
 
                 // Box Color fill
         boxFill:
                 ldx #$00
-        !:      lda boxColor,x      //color
+        !:      lda boxColor,x                  // color
                 cmp #$ff
                 beq drawLowerBox
-                sta $da58,x
+                sta COLOR_VIDEO_RAM+$258,x
                 inx
                 jmp !-
 
@@ -112,40 +115,40 @@ main: {
         drawLowerBox:
                 ldx #$27
         !:      lda lowBox,x
-                sta $0748,x
-                lda #BOX_BORDER_COLOR         //Color red
-                sta $db48,x
+                sta VIDEO_RAM+$0348,x
+                lda #BOX_BORDER_COLOR           // Color red
+                sta COLOR_VIDEO_RAM+$0348,x
                 dex
                 bpl !-
 
                 // Set CIA timers
                 lda #$08
-                sta $dc0f
-                sta $dd0f
+                sta CIA1_CONTROL_TIMER_B
+                sta CIA2_CONTROL_TIMER_B
                 lda #$48
-                sta $dc0e
+                sta CIA1_CONTROL_TIMER_A
                 lda #$08
-                sta $dd0e
+                sta CIA2_CONTROL_TIMER_A
 
                 // Init VIC
         initVic:
-                ldx #$2f            // Init VIC values
-        !:      lda vicMap-1,x
-                sta $cfff,x
+                ldx #$2f                        // Init VIC values
+        !:      lda vicMap-1, x
+                sta $cfff, x
                 dex
                 bne !-
 
                 // About string
                 ldx #$16
         !:      lda strAbout,x
-                sta $0408,x
+                sta VIDEO_RAM+$8,x
                 dex
                 bpl !-
                 ldx #$04
 
                 // Test Count
-        !:      lda strCount,x  // Print Count Label
-                sta $07c0,x
+        !:      lda strCount,x                  // Print Count Label
+                sta VIDEO_RAM+$03c0,x
                 dex
                 bpl !-
 
@@ -153,7 +156,7 @@ main: {
                 lda counterLow
                 and #$0f
                 ora #$30
-                sta $07c9
+                sta VIDEO_RAM+$03c9
                 lda counterLow
                 lsr
                 lsr
@@ -161,11 +164,11 @@ main: {
                 lsr
                 and #$0f
                 ora #$30
-                sta $07c8
+                sta VIDEO_RAM+$03c8
                 lda counterHigh
                 and #$0f
                 ora #$30
-                sta $07c7
+                sta VIDEO_RAM+$03c7
                 lda counterHigh
                 lsr
                 lsr
@@ -173,22 +176,56 @@ main: {
                 lsr
                 and #$0f
                 ora #$30
-                sta $07c6
+                sta VIDEO_RAM+$03c6
 
                 lda #$37
                 sta ZProcessPortBit
+
                 jmp zeroPageTest
         goStackPageTest:
                 jmp stackPageTest
 
         testSetB:
                 jsr updateCia1Time
-                jsr screenRamTest        //screen ram test
+                jsr screenRamTest
                 jsr updateCia1Time
-                jsr colorRamTest        //color ram test
+                jsr colorRamTest
                 jsr updateCia1Time
-                jsr ramTest             //ram test
+                jsr ramTest
                 jsr fontTest
+                jsr soundTest
+
+                //                      Prepare to Restart
+                sed
+                lda #$01
+                clc
+                adc counterLow
+                sta counterLow
+                lda #$00
+                adc counterHigh
+                sta counterHigh
+                cld
+                lda #$e7
+                sta ZProcessPortBit
+                lda #$37
+                sta ZProcessDataDir
+
+                //  VOLUME OFF
+                lda #$00
+                sta SID_FILTER_VOL
+
+                //  Clear view
+                ldx #$00
+                lda #$20
+        !:      sta VIDEO_RAM,x
+                sta VIDEO_RAM+$100,x
+                inx
+                bne !-
+                ldx #$2e
+                lda #$20
+        !:      sta VIDEO_RAM+$200,x
+                dex
+                bpl !-
                 jmp main.initVic
 }
 
@@ -214,11 +251,10 @@ prefill:
 .fill ($ffff-prefill-5), $aa
 
          *=$fffa
-         .word $e000
+         .word main
          *=$fffc
-         .word $e000
+         .word main
          *=$fffe
-         .word $e000
+         .word main
 
 //---------------------------------------
-//eof

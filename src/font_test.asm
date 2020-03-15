@@ -3,6 +3,7 @@
 #import "./data.asm"
 #import "./macros.asm"
 #import "./u_failure.asm"
+#import "./constants.asm"
 
 fontTest: {
     ///////      FONT TESTS
@@ -26,35 +27,5 @@ fontTest: {
             dex
             bpl copyFontLoop
             jsr updateCia1Time
-
-            jsr soundTest        // sound test
-
-            sed
-            lda #$01
-            clc
-            adc counterLow
-            sta counterLow
-            lda #$00
-            adc counterHigh
-            sta counterHigh
-            cld
-            lda #$e7
-            sta ZProcessPortBit
-            lda #$37
-            sta ZProcessDataDir
-            lda #$00
-            sta $d418
-            ldx #$00
-            lda #$20
-    !:      sta $0400,x
-            sta $0500,x
-            inx
-            bne !-
-            ldx #$2e
-            lda #$20
-    !:      sta $0600,x
-            dex
-            bpl !-
             rts
-
 }

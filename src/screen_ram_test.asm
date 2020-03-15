@@ -2,17 +2,18 @@
 #import "./data.asm"
 #import "./macros.asm"
 #import "./u_failure.asm"
+#import "./constants.asm"
 
 ///////      SCREEN RAM TEST
 screenRamTest: {
                 ldx #$09
         !:      lda strScreen,x      //screen ram label
-                sta $04a0,x
+                sta VIDEO_RAM+$a0,x
                 dex
                 bpl !-
 
-                ldx #<$0400
-                ldy #>$0400
+                ldx #<VIDEO_RAM
+                ldy #>VIDEO_RAM
                 stx tmpSourceAddressLow
                 sty tmpSourceAddressHigh
         screenRamTestLoop:
@@ -41,19 +42,19 @@ screenRamTest: {
                 cmp #$08
                 bne screenRamTestLoop
                 lda #$0f         //"o"
-                sta $04ad
+                sta VIDEO_RAM+$ad
                 lda #$0b         //"k"
-                sta $04ae
+                sta VIDEO_RAM+$ae
                 rts
 
         screenRamTestFailed:
                 eor MemTestPattern,x
                 tax
                 lda #$02         //"b"
-                sta $04ad
+                sta VIDEO_RAM+$ad
                 lda #$01         //"a"
-                sta $04ae
+                sta VIDEO_RAM+$ae
                 lda #$04         //"d"
-                sta $04af
+                sta VIDEO_RAM+$af
                 jsr testU
 }

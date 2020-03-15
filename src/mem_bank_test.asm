@@ -159,14 +159,14 @@ memBankTest: {
                         txs
                 flashLoop:              // Infinite Flash Loop
                         lda #$01        // set Screen to White
-                        sta $d020
-                        sta $d021
+                        sta VIC2_BORDERCOLOUR
+                        sta VIC2_BGCOLOUR
 
                         LongDelayLoop($7f,0)
 
                         lda #$00        // set Screen to Black
-                        sta $d020
-                        sta $d021
+                        sta VIC2_BORDERCOLOUR
+                        sta VIC2_BGCOLOUR
 
                         LongDelayLoop($7f,0)
 

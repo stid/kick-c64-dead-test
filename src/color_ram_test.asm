@@ -2,13 +2,14 @@
 #import "./data.asm"
 #import "./macros.asm"
 #import "./u_failure.asm"
+#import "./constants.asm"
 
 
 ///////      COLOR RAM TEST
 colorRamTest: {
                 ldx #$08
         !:      lda srtColor,x      // Print color ram test
-                sta $04c8,x
+                sta VIDEO_RAM+$c8,x
                 dex
                 bpl !-
 
@@ -43,19 +44,19 @@ colorRamTest: {
                 cmp #$dc
                 bne colorRamTestLoop
                 lda #$0f         //"o"
-                sta $04d5
+                sta VIDEO_RAM+$d5
                 lda #$0b         //"k"
-                sta $04d6
+                sta VIDEO_RAM+$d6
                 rts
 
         colorRamTestFailed:
                 eor colorRamPattern,x
                 tax
                 lda #$02         //"b"
-                sta $04d5
+                sta VIDEO_RAM+$d5
                 lda #$01         //"a"
-                sta $04d6
+                sta VIDEO_RAM+$d6
                 lda #$04         //"d"
-                sta $04d7
+                sta VIDEO_RAM+$d7
                 jmp testU
 }
