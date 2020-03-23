@@ -1,8 +1,10 @@
 #importonce
-#import "./zeropage_map.asm"
-#import "./main_loop.asm"
 #import "./u_failure.asm"
-#import "./constants.asm"
+#import "./macros.asm"
+#import "./zeropage_map.asm"
+#import "./mem_map.asm"
+#import "./data.asm"
+#import "./main_loop.asm"
 
 
         * = * "zero page test"
@@ -53,5 +55,5 @@ zeroPageTest: {
                 sta VIDEO_RAM+$5e
                 lda #$04         //"d"
                 sta VIDEO_RAM+$5f
-                jmp testU
+                jmp UFailed
 }

@@ -3,7 +3,6 @@
 #import "./macros.asm"
 #import "./u_failure.asm"
 #import "./main.asm"
-#import "./constants.asm"
 
         * = * "stack page test"
 
@@ -49,5 +48,5 @@ stackPageTest: {
                 sta VIDEO_RAM+$86
                 lda #$04         //"d"
                 sta VIDEO_RAM+$87
-                jmp testU
+                jmp UFailed
 }

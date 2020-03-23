@@ -1,34 +1,29 @@
 #importonce
-#import "./main_loop.asm"
 #import "./data.asm"
-#import "./macros.asm"
-#import "./u_failure.asm"
-#import "./constants.asm"
 #import "./zeropage_map.asm"
 
         * = * "font test"
 
 
 fontTest: {
-    ///////      FONT TESTS
-            lda #<font
-            ldx #>font
-            sta tmpSourceAddressLow
-            stx tmpSourceAddressHigh
-            lda #<$0800
-            ldx #>$0800
-            sta tmpDestAddressLow
-            stx tmpDestAddressHigh
-            ldx #$01
-            ldy #$00
-    copyFontLoop:
-            lda (tmpSourceAddressLow),y
-            sta (tmpDestAddressLow),y
-            iny
-            bne copyFontLoop
-            inc tmpSourceAddressHigh
-            inc tmpDestAddressHigh
-            dex
-            bpl copyFontLoop
-            rts
+                lda #<font
+                ldx #>font
+                sta ZP.tmpSourceAddressLow
+                stx ZP.tmpSourceAddressHigh
+                lda #<$0800
+                ldx #>$0800
+                sta ZP.tmpDestAddressLow
+                stx ZP.tmpDestAddressHigh
+                ldx #$01
+                ldy #$00
+    !:
+                lda (ZP.tmpSourceAddressLow),y
+                sta (ZP.tmpDestAddressLow),y
+                iny
+                bne !-
+                inc ZP.tmpSourceAddressHigh
+                inc ZP.tmpDestAddressHigh
+                dex
+                bpl !-
+                rts
 }

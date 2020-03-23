@@ -2,7 +2,6 @@
 #import "./data.asm"
 #import "./macros.asm"
 #import "./u_failure.asm"
-#import "./constants.asm"
 
         * = * "color ram test"
 
@@ -17,32 +16,32 @@ colorRamTest: {
 
                 ldx #<$d800
                 ldy #>$d800
-                stx tmpSourceAddressLow
-                sty tmpSourceAddressHigh
+                stx ZP.tmpSourceAddressLow
+                sty ZP.tmpSourceAddressHigh
                 ldy #$00
         colorRamTestLoop:
                 ldy #$00
-                lda (tmpSourceAddressLow),y
+                lda (ZP.tmpSourceAddressLow),y
                 pha
                 ldx #$0b
         colorRamPattermTestLoop:
                 lda colorRamPattern,x
-                sta (tmpSourceAddressLow),y
+                sta (ZP.tmpSourceAddressLow),y
 
                 ShortDelayLoop(0)
 
-                lda (tmpSourceAddressLow),y
+                lda (ZP.tmpSourceAddressLow),y
                 and #$0f
                 cmp colorRamPattern,x
                 bne colorRamTestFailed
                 dex
                 bpl colorRamPattermTestLoop
                 pla
-                sta (tmpSourceAddressLow),y
-                inc tmpSourceAddressLow
+                sta (ZP.tmpSourceAddressLow),y
+                inc ZP.tmpSourceAddressLow
                 bne !+          // > 255
-                inc tmpSourceAddressHigh
-        !:      lda tmpSourceAddressHigh
+                inc ZP.tmpSourceAddressHigh
+        !:      lda ZP.tmpSourceAddressHigh
                 cmp #$dc
                 bne colorRamTestLoop
                 lda #$0f         //"o"
@@ -60,5 +59,5 @@ colorRamTest: {
                 sta VIDEO_RAM+$d6
                 lda #$04         //"d"
                 sta VIDEO_RAM+$d7
-                jmp testU
+                jmp UFailed
 }

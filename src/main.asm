@@ -7,22 +7,19 @@
 //-------------------------------------------
 //
 #import "./zeropage_map.asm"
-#import "./constants.asm"
 
         * = $e000 "Main"
 
 #import "./main_loop.asm"
-
 #import "./data.asm"
 #import "./zeropage_map.asm"
 
-prefill:
 
 //      This should be an Util (ROMHI) cartrige
 //      GAME = 0, EXROM = 1 - Ultimax Mode, ROMLOW should be ignored
 //      C64 Karnel $E000-$FFFF will be overwritten
 //      Vectors below will grant start control
-.fill ($ffff-prefill-5), $aa
+prefill: .fill ($ffff-prefill-5), $aa
 
          *=$fffa        "Non-Maskable Interrupt Hardware Vector"
          .word mainLoop

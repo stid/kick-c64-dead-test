@@ -1,8 +1,8 @@
 #importonce
 #import "./data.asm"
+#import "./mem_map.asm"
 #import "./macros.asm"
-#import "./u_failure.asm"
-#import "./constants.asm"
+#import "./zeropage_map.asm"
 
         * = * "ram test"
 
@@ -17,26 +17,26 @@ ramTest: {
 
                 ldx #<$0800
                 ldy #>$0800
-                stx tmpSourceAddressLow
-                sty tmpSourceAddressHigh
+                stx ZP.tmpSourceAddressLow
+                sty ZP.tmpSourceAddressHigh
         RamTestLoop:
                 ldy #$00
                 ldx #$13
         RamTestPatternLoop:
                 lda MemTestPattern,x
-                sta (tmpSourceAddressLow),y
+                sta (ZP.tmpSourceAddressLow),y
 
                 ShortDelayLoop($7f)
 
-                lda (tmpSourceAddressLow),y
+                lda (ZP.tmpSourceAddressLow),y
                 cmp MemTestPattern,x
                 bne RamTestFailed
                 dex
                 bpl RamTestPatternLoop
-                inc tmpSourceAddressLow
+                inc ZP.tmpSourceAddressLow
                 bne !+
-                inc tmpSourceAddressHigh         // > 255
-        !:      lda tmpSourceAddressHigh
+                inc ZP.tmpSourceAddressHigh         // > 255
+        !:      lda ZP.tmpSourceAddressHigh
                 cmp #$10
                 bne RamTestLoop
                 lda #$0f         //"o"

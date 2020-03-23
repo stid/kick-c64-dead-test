@@ -1,6 +1,6 @@
 #importonce
 #import "./zeropage_map.asm"
-#import "./constants.asm"
+#import "./mem_map.asm"
 #import "./data.asm"
 #import "./main_loop.asm"
 
@@ -11,21 +11,21 @@
 drawLayout: {
             lda #<font
             ldx #>font
-            sta tmpSourceAddressLow         // Source Address
-            stx tmpSourceAddressHigh
+            sta ZP.tmpSourceAddressLow         // Source Address
+            stx ZP.tmpSourceAddressHigh
             lda #<$0800
             ldx #>$0800
-            sta tmpDestAddressLow           // Dest Address
-            stx tmpDestAddressHigh
+            sta ZP.tmpDestAddressLow           // Dest Address
+            stx ZP.tmpDestAddressHigh
             ldx #$01
             ldy #$00
     fontCopyLoop:
-            lda (tmpSourceAddressLow),y        // Load from source
-            sta (tmpDestAddressLow),y          // Write to dest
+            lda (ZP.tmpSourceAddressLow),y        // Load from source
+            sta (ZP.tmpDestAddressLow),y          // Write to dest
             iny
             bne fontCopyLoop
-            inc tmpSourceAddressHigh
-            inc tmpDestAddressHigh
+            inc ZP.tmpSourceAddressHigh
+            inc ZP.tmpDestAddressHigh
             dex
             bpl fontCopyLoop                // Loop until -1
 
@@ -33,16 +33,16 @@ drawLayout: {
             // Start from $Dx07 down to $Dx03
             ldx #$04
     !:      lda cia1Table,x
-            sta CIA1_TIMER_B_HIGH, x
+            sta CIA1.TIMER_B_HIGH, x
             lda cia2Table,x
-            sta CIA2_TIMER_B_HIGH, x
+            sta CIA2.TIMER_B_HIGH, x
             dex
             bne !-
 
             // Reset Counter
             ldx #$00
-            stx counterLow
-            stx counterHigh
+            stx ZP.counterLow
+            stx ZP.counterHigh
 
             ldx #$00                        // Cleanup Screen
     clanScreenLoop:
@@ -100,12 +100,12 @@ drawLayout: {
 
             // Set CIA timers
             lda #$08
-            sta CIA1_CONTROL_TIMER_B
-            sta CIA2_CONTROL_TIMER_B
+            sta CIA1.CONTROL_TIMER_B
+            sta CIA2.CONTROL_TIMER_B
             lda #$48
-            sta CIA1_CONTROL_TIMER_A
+            sta CIA1.CONTROL_TIMER_A
             lda #$08
-            sta CIA2_CONTROL_TIMER_A
+            sta CIA2.CONTROL_TIMER_A
 
              ldx #39
       !:     txa

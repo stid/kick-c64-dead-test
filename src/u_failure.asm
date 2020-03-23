@@ -1,12 +1,13 @@
 #importonce
 #import "./zeropage_map.asm"
-#import "./constants.asm"
+#import "./mem_map.asm"
+#import "./const.asm"
 
 
         * = * "u failure"
 
 //////       TEST FAILED U
-testU: {
+UFailed: {
         testU21:
                 txa
                 and #$01

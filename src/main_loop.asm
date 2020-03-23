@@ -1,6 +1,5 @@
 #importonce
 #import "./zeropage_map.asm"
-#import "./constants.asm"
 #import "./mem_bank_test.asm"
 
 
@@ -12,13 +11,13 @@ mainLoop: {
                 txs
                 cld
                 lda #$e7                        // Set IO registers
-                sta ZProcessPortBit
+                sta ZP.ProcessPortBit
                 lda #$37                        // Set Data direction
-                sta ZProcessDataDir
+                sta ZP.ProcessDataDir
 
                 lda #$00                        // Set video to Black
-                sta VIC2_BORDERCOLOUR           // Border color (only bits #0-#3).
-                sta VIC2_BGCOLOUR               // Background color (only bits #0-#3).
+                sta VIC2.BORDERCOLOUR           // Border color (only bits #0-#3).
+                sta VIC2.BGCOLOUR               // Background color (only bits #0-#3).
 
                 jmp memBankTest                 // Ram test first, screen is black here
 
@@ -35,8 +34,8 @@ mainLoop: {
                 bne !-
 
                 // Cycle border color based on actual counter
-                lda counterLow
-                sta VIC2_BORDERCOLOUR
+                lda ZP.counterLow
+                sta VIC2.BORDERCOLOUR
 
                 // About string
                 ldx #$1c
@@ -53,11 +52,11 @@ mainLoop: {
                 bpl !-
 
                 // Print Count
-                lda counterLow
+                lda ZP.counterLow
                 and #$0f
                 ora #$30
                 sta VIDEO_RAM+$03c9
-                lda counterLow
+                lda ZP.counterLow
                 lsr
                 lsr
                 lsr
@@ -65,11 +64,11 @@ mainLoop: {
                 and #$0f
                 ora #$30
                 sta VIDEO_RAM+$03c8
-                lda counterHigh
+                lda ZP.counterHigh
                 and #$0f
                 ora #$30
                 sta VIDEO_RAM+$03c7
-                lda counterHigh
+                lda ZP.counterHigh
                 lsr
                 lsr
                 lsr
@@ -79,7 +78,7 @@ mainLoop: {
                 sta VIDEO_RAM+$03c6
 
                 lda #$37
-                sta ZProcessPortBit
+                sta ZP.ProcessPortBit
 
                 jmp zeroPageTest        // TEST ZERO PAGE
 
@@ -102,20 +101,20 @@ mainLoop: {
                 sed
                 lda #$01
                 clc
-                adc counterLow
-                sta counterLow
+                adc ZP.counterLow
+                sta ZP.counterLow
                 lda #$00
-                adc counterHigh
-                sta counterHigh
+                adc ZP.counterHigh
+                sta ZP.counterHigh
                 cld
                 lda #$e7
-                sta ZProcessPortBit
+                sta ZP.ProcessPortBit
                 lda #$37
-                sta ZProcessDataDir
+                sta ZP.ProcessDataDir
 
                 //  VOLUME OFF
                 lda #$00
-                sta SID_FILTER_VOL
+                sta SID.FILTER_VOL
 
                 //  Clear view
                 ldx #$00

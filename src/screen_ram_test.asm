@@ -2,7 +2,7 @@
 #import "./data.asm"
 #import "./macros.asm"
 #import "./u_failure.asm"
-#import "./constants.asm"
+#import "./mem_map.asm"
 
 
         * = * "screen ram test"
@@ -17,31 +17,31 @@ screenRamTest: {
 
                 ldx #<VIDEO_RAM
                 ldy #>VIDEO_RAM
-                stx tmpSourceAddressLow
-                sty tmpSourceAddressHigh
+                stx ZP.tmpSourceAddressLow
+                sty ZP.tmpSourceAddressHigh
         screenRamTestLoop:
                 ldy #$00
-                lda (tmpSourceAddressLow),y
+                lda (ZP.tmpSourceAddressLow),y
                 pha
                 ldx #$13
         screenRamPatternTestLoop:
                 lda MemTestPattern,x
-                sta (tmpSourceAddressLow),y
+                sta (ZP.tmpSourceAddressLow),y
 
                 ShortDelayLoop(0)
 
-                lda (tmpSourceAddressLow),y
+                lda (ZP.tmpSourceAddressLow),y
                 cmp MemTestPattern,x
                 bne screenRamTestFailed
                 dex
                 bpl screenRamPatternTestLoop
                 pla
-                sta (tmpSourceAddressLow),y
-                inc tmpSourceAddressLow
+                sta (ZP.tmpSourceAddressLow),y
+                inc ZP.tmpSourceAddressLow
                 bne !+
-                inc tmpSourceAddressHigh         // > 255
+                inc ZP.tmpSourceAddressHigh         // > 255
 
-        !:  lda tmpSourceAddressHigh
+        !:      lda ZP.tmpSourceAddressHigh
                 cmp #$08
                 bne screenRamTestLoop
                 lda #$0f         //"o"
@@ -59,5 +59,5 @@ screenRamTest: {
                 sta VIDEO_RAM+$ae
                 lda #$04         //"d"
                 sta VIDEO_RAM+$af
-                jsr testU
+                jsr UFailed
 }
