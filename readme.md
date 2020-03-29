@@ -50,16 +50,16 @@ You should be able to customize this version very easily, assuming proper assemb
 
 As mentioned above, test logic and **flow is untouched** and should be identical to the Dead Test rev. 781220. These is the high level flow executed on any test cycle:
 
-- memBankTest - clack screen, if test fail, jump to screen blinking and go in infinite loop
-- drawLayout executed - VIC initialized
-- zeroPageTest
-- stackPageTest
-- screenRamTest
-- colorRamTest
-- ramTest
-- fontTest
-- soundTest
-- Counter updated, loop to VIC initialization and restart tests
+1. memBankTest - clack screen, if test fail, jump to screen blinking and go in infinite loop
+2. drawLayout executed - VIC initialized
+3. zeroPageTest
+4. stackPageTest
+5. screenRamTest
+6. colorRamTest
+7. ramTest
+8. fontTest
+9. soundTest
+10. Counter updated, loop to VIC initialization and restart tests
 
 ## Burning EPROM & compatible Cartridge
 
