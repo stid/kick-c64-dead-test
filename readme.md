@@ -65,7 +65,7 @@ As mentioned above, test logic and **flow is untouched** and should be identical
 
 The `make` will generate a `.bin` file ready to be burned on an **EPROM**. I was able to successfully burn the Dead Test on a **M2764A**. You can also use the faster and easy to be erased/rewritten **2W27C512**, but you need to ensure the code is positioned at 256Kb offset. You can concat the 8k bin 33 times to just fill the cartridge with cloned code up to the 256k offset. **27C256** should also work but I didn't try it myself.
 
-I used a [HomeBrew development cartridge](https://www.ebay.com/sch/i.html?_from=R40&_trksid=m570.l1313&_nkw=commodore+64+HomeBrew+DEVelopment+cartridge&_sacat=0) to install the related EPROM. You need to have an 8K setup with GAME = 0, EXROM = 0, ROML. (16k setup without ROMH). You want the EPROM data to be loaded at $8000.
+I used a [HomeBrew development cartridge](https://www.ebay.com/sch/i.html?_from=R40&_trksid=m570.l1313&_nkw=commodore+64+HomeBrew+DEVelopment+cartridge&_sacat=0) to install the related EPROM. You need to have an 8K setup with GAME = 0, EXROM = 1, Ultimax Mode, ROMLOW should be ignored - This should be an Util (ROMHI) cartrige. C64 Karnel $E000-$FFFF will be overwritten.
 
 You can also buy a pre assembled Dead Test **"DEAD TEST DIAGNOSTIC cartridge 781220"** and substitute the related EPROM (or burn over it if you don't mind loosing the original version).
 
