@@ -41,6 +41,8 @@
     .label VOICE_1_ATK_DEC          = $d405
     .label VOICE_1_SUS_VOL_REL      = $d406
     .label VOICE_3_CTRL             = $d412
+    .label FILTER_CUTOFF_L          = $d415
+    .label FILTER_CUTOFF_H          = $d416
     .label FILTER_RES_ROUT          = $d417
     .label FILTER_VOL               = $d418
     .label VOICE_2_ATK_DEC          = $d40c
@@ -57,3 +59,5 @@
     .label VOICE_3_PULSE_L          = $d410
     .label VOICE_3_PULSE_H          = $d411
 }
+
+

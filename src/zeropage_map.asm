@@ -13,4 +13,5 @@
     tmpDestAddressLow:      .byte 0
     tmpDestAddressHigh:     .byte 0
     tmpY:                   .byte 0
+    tmpFilterSound:         .byte 0
 }

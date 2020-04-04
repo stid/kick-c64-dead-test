@@ -2,10 +2,10 @@
 #import "./data.asm"
 #import "./macros.asm"
 #import "./mem_map.asm"
+#import "./zeropage_map.asm"
 
 
         * = * "sound test"
-
 
 soundTest: {
                 ldx #$09

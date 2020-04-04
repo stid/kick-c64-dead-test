@@ -42,6 +42,7 @@ The original test logic & sequence is in fact untouched, it should act as the or
 - Very **small optimizations** were added to the code.
 - compared to the worldofjani.com original disassembly, **constants, labels & comments** has been added on the code. Definitely something that cab  be further improved.
 - I personalized (**hacked** by) the about string :) - didn't resist.
+- Sound Filters test was added just after the original sound test. This was pointed out in the facebook group "Commodore 64/128 programming" and based on this video: https://www.youtube.com/watch?v=QYgfcvlqIlc&t=1438s. Broken filters are not easy to be spotted with the sound only test.
 
 ## Customizing the Dead Test
 
@@ -62,7 +63,8 @@ As mentioned above, test logic and **flow is untouched** and should be identical
 7. ramTest
 8. fontTest
 9. soundTest
-10. Counter updated, loop to VIC initialization and restart tests
+10. filtersTest
+11. Counter updated, loop to VIC initialization and restart tests
 
 ## Burning EPROM & compatible Cartridge
 

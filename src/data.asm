@@ -27,7 +27,7 @@ colorRamPattern:
 
 
 .encoding       "screencode_mixed"
-strAbout:       .text "c-64 dead test rev stid 1.0.1"
+strAbout:       .text "c-64 dead test rev stid 1.1.0"
 strCount:       .text "count"
 strZero:        .text "zero page"
 strStack:       .text "stack page"
@@ -35,6 +35,7 @@ strRam:         .text "ram test"
 srtColor:       .text "color ram"
 strSound:       .text "sound test"
 strScreen:      .text "screen ram"
+strFilters:     .text "filters test"
 
 sound1:         .byte $11,$15,$19,$22,$19,$15,$11         // soundtest
 sound2:         .byte $25,$9a,$b1,$4b,$b1,$9a,$25         //

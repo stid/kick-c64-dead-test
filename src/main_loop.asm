@@ -96,6 +96,8 @@ mainLoop: {
                 jsr fontTest
                 jsr updateCia1Time
                 jsr soundTest
+                jsr updateCia1Time
+                jsr filterTest
 
                 //                      Prepare to Restart
                 sed
@@ -142,3 +144,4 @@ mainLoop: {
 #import "./ram_test.asm"
 #import "./font_test.asm"
 #import "./sound_test.asm"
+#import "./filters_test.asm"
