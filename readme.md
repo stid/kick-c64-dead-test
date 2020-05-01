@@ -7,12 +7,15 @@ If you just need to test your machine, I strongly suggest to go with the origina
 
 ![Running Dead Test](/images/IMG_20200329_152641.png)
 
-
 ## Prerequisites
 
 - [kickassembler](http://theweb.dk/KickAssembler/Main.html#frontpage) should be installed in your system. Also if you use the provided makefile, you need to ensure it will be in same path as `KICKASS_BIN` is pointing at. You can update this variable to match your needs of course.
 
 - [vice](https://vice-emu.sourceforge.io/) is the recommended way to test the compiled `.crt` file and is also required to convert the `.prg` output to crt and then bin. If you are on **MacOS** like me, best option is to use the brew version of vice. The make file assume **cartconv** is available in the execution path. Note as an alternative path you can generate the bin from the prg by just  remove the first two bytes in it.
+
+## Binary files
+
+Stable release are published under https://github.com/stid/kick-c64-dead-test/releases. Both CRT and BIN files are available.
 
 ## Build, Compile & run
 
@@ -54,7 +57,7 @@ You should be able to customize this version very easily, assuming proper assemb
 
 As mentioned above, test logic and **flow is untouched** and should be identical to the Dead Test rev. 781220. These is the high level flow executed on any test cycle:
 
-1. memBankTest - clack screen, if test fail, jump to screen blinking and go in infinite loop
+1. memBankTest - Black screen, if test fail, jump to screen blinking and go in infinite loop
 2. drawLayout executed - VIC initialized
 3. zeroPageTest
 4. stackPageTest
