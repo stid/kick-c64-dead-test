@@ -34,8 +34,10 @@ mainLoop: {
                 bne !-
 
                 // Cycle border color based on actual counter
-                lda ZP.counterLow
-                sta VIC2.BORDERCOLOUR
+                ldx ZP.counterLow
+                inx
+                inx                     // Start with Color border
+                stx VIC2.BORDERCOLOUR
 
                 // About string
                 ldx #$1c
