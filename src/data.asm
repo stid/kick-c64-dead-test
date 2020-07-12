@@ -27,7 +27,7 @@ colorRamPattern:
 
 
 .encoding       "screencode_mixed"
-strAbout:       .text "c-64 dead test rev stid 1.1.0"
+strAbout:       .text "c-64 dead test rev stid 1.2.0"
 strCount:       .text "count"
 strZero:        .text "zero page"
 strStack:       .text "stack page"
