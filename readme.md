@@ -7,9 +7,15 @@ It's based on the original disassembly by worldofjani.com. The pre-existing test
 
 ## Prerequisites
 
-- [KickAssembler](http://theweb.dk/KickAssembler/Main.html#frontpage) should be installed on your system. If you use the provided makefile, you need to ensure it's in the same path as `KICKASS_BIN` points to. You can update this variable to match your needs, of course.
+- [KickAssembler](http://theweb.dk/KickAssembler/Main.html#frontpage) should be installed on your system. The makefile expects it at `/Applications/KickAssembler/KickAss.jar` by default. You can override this by setting `KICKASS_BIN` when running make (e.g., `make KICKASS_BIN=/path/to/KickAss.jar`).
 
-- [VICE](https://vice-emu.sourceforge.io/) is the recommended way to test the compiled `.crt` file and is also required to convert the `.prg` output to `.crt` and then `.bin`. If you are on **macOS** like me, the best option is to use the Homebrew version of VICE. The makefile assumes **cartconv** is available in the execution path. Note that as an alternative, you can generate the bin from the prg by simply removing the first two bytes from it.
+- [VICE](https://vice-emu.sourceforge.io/) is required for testing and building. You need:
+  - **cartconv** - For converting `.prg` files to `.crt` and `.bin` formats
+  - **x64sc** - The C64 emulator for testing
+  
+  On **macOS**, install VICE via Homebrew: `brew install vice`
+  
+  The makefile expects these tools to be in your PATH. Run `make check-tools` to verify everything is properly installed.
 
 ## Binary Files
 

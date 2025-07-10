@@ -26,10 +26,21 @@ make debug        # Build and run with VICE monitor
 x64sc ./bin/dead-test.crt  # Manual run after build
 ```
 
+### Makefile variables
+
+You can override these when running make:
+
+```bash
+make KICKASS_BIN=/path/to/KickAss.jar  # Custom KickAssembler path
+make JAVA=/usr/bin/java                # Custom Java executable
+make X64SC=x64                         # Use different C64 emulator
+```
+
 ### Prerequisites
 
-- KickAssembler must be installed at `/opt/develop/stid/c64/KickAssembler/KickAss.jar` (update `KICKASS_BIN` in makefile if different)
-- VICE emulator for testing and cartridge conversion tools
+- KickAssembler must be installed at `/Applications/KickAssembler/KickAss.jar` (update `KICKASS_BIN` in makefile if different)
+- VICE emulator for testing and cartridge conversion tools (cartconv, x64sc)
+- Java runtime for running KickAssembler
 
 ## Architecture Overview
 
