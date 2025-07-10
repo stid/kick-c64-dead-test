@@ -16,14 +16,54 @@ cia1Table:
 cia2Table:
                 .byte $00,$00,$00,$00,$80
 
+// Memory test patterns - each designed to detect specific failure modes
+// Total: 20 bytes tested in reverse order (index 19 down to 0)
 MemTestPattern:
-                .byte $00,$55,$aa,$ff,$01,$02,$04,$08     // memtest pattern
-                .byte $10,$20,$40,$80,$fe,$fd,$fb,$f7     //
-                .byte $ef,$df,$bf,$7f                     //
+                // Boundary patterns - detect stuck bits
+                .byte $00       // All bits off - detects stuck-at-1
+                .byte $55       // 01010101 - alternating bits (even positions)
+                .byte $aa       // 10101010 - alternating bits (odd positions)  
+                .byte $ff       // All bits on - detects stuck-at-0
+                
+                // Walking ones - isolate individual bit failures
+                .byte $01       // 00000001 - test bit 0 (U21)
+                .byte $02       // 00000010 - test bit 1 (U9)
+                .byte $04       // 00000100 - test bit 2 (U22)
+                .byte $08       // 00001000 - test bit 3 (U10)
+                .byte $10       // 00010000 - test bit 4 (U23)
+                .byte $20       // 00100000 - test bit 5 (U11)
+                .byte $40       // 01000000 - test bit 6 (U24)
+                .byte $80       // 10000000 - test bit 7 (U12)
+                
+                // Walking zeros - detect short circuits between bits
+                .byte $fe       // 11111110 - all except bit 0
+                .byte $fd       // 11111101 - all except bit 1
+                .byte $fb       // 11111011 - all except bit 2
+                .byte $f7       // 11110111 - all except bit 3
+                .byte $ef       // 11101111 - all except bit 4
+                .byte $df       // 11011111 - all except bit 5
+                .byte $bf       // 10111111 - all except bit 6
+                .byte $7f       // 01111111 - all except bit 7
 
+// Color RAM test patterns - only 4 bits valid (0-15)
 colorRamPattern:
-                .byte $00,$05,$0a,$0f,$01,$02,$04,$08
-                .byte $0e,$0d,$0b,$07
+                // 4-bit boundary and alternating patterns
+                .byte $00       // 0000 - all bits off
+                .byte $05       // 0101 - alternating bits
+                .byte $0a       // 1010 - inverse alternating
+                .byte $0f       // 1111 - all bits on
+                
+                // 4-bit walking ones
+                .byte $01       // 0001 - bit 0
+                .byte $02       // 0010 - bit 1
+                .byte $04       // 0100 - bit 2
+                .byte $08       // 1000 - bit 3
+                
+                // 4-bit walking zeros
+                .byte $0e       // 1110 - all except bit 0
+                .byte $0d       // 1101 - all except bit 1
+                .byte $0b       // 1011 - all except bit 2
+                .byte $07       // 0111 - all except bit 3
 
 
 .encoding       "screencode_mixed"

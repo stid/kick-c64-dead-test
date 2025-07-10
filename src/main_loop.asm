@@ -5,26 +5,48 @@
 
         * = * "main loop"
 
+//=============================================================================
+// MAIN TEST LOOP - Orchestrates All Diagnostic Tests
+// Entry point from hardware vectors at $FFFA-$FFFF
+//
+// Test Sequence (Critical Order):
+// 1. Memory bank test (black screen, no stack)
+// 2. Layout drawing (after basic RAM verified)
+// 3. Zero page test (no stack)
+// 4. Stack page test (no stack)
+// 5. All remaining tests (stack available)
+//
+// The transition from JMP to JSR happens after stack test passes
+//=============================================================================
+
 mainLoop: {
-                sei                             // Set Interrupt
+                // Initialize system to known state
+                sei                             // Disable interrupts - we handle everything
                 ldx #$ff
-                txs
-                cld
-                lda #$e7                        // Set IO registers
-                sta ZP.ProcessPortBit
-                lda #$37                        // Set Data direction
-                sta ZP.ProcessDataDir
+                txs                             // Stack pointer = $01FF (top of stack)
+                cld                             // Clear decimal mode (binary arithmetic)
+                
+                // Configure 6510 processor port for proper memory mapping
+                // This ensures we see RAM at $A000-$BFFF and $E000-$FFFF
+                lda #$e7                        // %11100111
+                sta ZP.ProcessPortBit           // Bits: LORAM=1, HIRAM=1, CHAREN=1
+                lda #$37                        // %00110111
+                sta ZP.ProcessDataDir           // DDR: Motor=out, others as needed
 
-                lda #$00                        // Set video to Black
-                sta VIC2.BORDERCOLOUR           // Border color (only bits #0-#3).
-                sta VIC2.BGCOLOUR               // Background color (only bits #0-#3).
+                // Black screen during memory test
+                // Prevents confusing garbage display if RAM is bad
+                lda #$00                        // Black
+                sta VIC2.BORDERCOLOUR           
+                sta VIC2.BGCOLOUR               
 
-                jmp memBankTest                 // Ram test first, screen is black here
+                // CRITICAL: First test - no stack operations allowed!
+                jmp memBankTest                 // Test RAM with black screen
 
         memBankTestDone:
-                // At this point RAM is working
-                // program draw main interface layout
-                jmp     drawLayout
+                // RAM test passed! Basic memory is functional
+                // Now safe to draw screen layout (uses RAM)
+                // Still no stack operations - zero page and stack not tested
+                jmp     drawLayout              // Draw test interface
 
         initVic:
                 ldx #$2f                        // Init VIC values
@@ -79,38 +101,58 @@ mainLoop: {
                 ora #$30
                 sta VIDEO_RAM+$03c6
 
+                // Restore normal memory configuration
                 lda #$37
                 sta ZP.ProcessPortBit
 
-                jmp zeroPageTest        // TEST ZERO PAGE
+                // Continue with critical tests - still no stack!
+                jmp zeroPageTest        
 
         zeroPageTestDone:
-                jmp stackPageTest       // TEST STACK
+                // Zero page works, but still can't use stack
+                jmp stackPageTest       
 
-        stackPageTestDone:              // If here, RAM, Zero Page & Stack are ok
-                jsr updateCia1Time      // We can move to JSR and more complex tests
-                jsr screenRamTest
+        stackPageTestDone:              
+                //=========================================================
+                // CRITICAL MILESTONE: Stack test passed!
+                // From this point forward we can use:
+                // - JSR/RTS for subroutines
+                // - PHA/PLA for register preservation
+                // - PHP/PLP for status preservation
+                // - Interrupt handlers (if we enabled them)
+                //=========================================================
+                
+                // First subroutine call in the entire program!
+                jsr updateCia1Time      // Update timer display
+                // Run remaining tests with full subroutine support
+                jsr screenRamTest       // Test video RAM
+                jsr updateCia1Time      
+                
+                jsr colorRamTest        // Test color RAM (separate chip)
                 jsr updateCia1Time
-                jsr colorRamTest
+                
+                jsr ramTest             // Extended RAM test
                 jsr updateCia1Time
-                jsr ramTest
+                
+                jsr fontTest            // Verify character ROM access
                 jsr updateCia1Time
-                jsr fontTest
+                
+                jsr soundTest           // Test SID oscillators
                 jsr updateCia1Time
-                jsr soundTest
-                jsr updateCia1Time
-                jsr filterTest
+                
+                jsr filterTest          // Test SID filters (your addition)
 
-                //                      Prepare to Restart
-                sed
+                // All tests complete - prepare for next iteration
+                // Increment test counter in BCD mode for easy display
+                sed                     // Set decimal mode
                 lda #$01
                 clc
-                adc ZP.counterLow
+                adc ZP.counterLow       // Add 1 to low byte
                 sta ZP.counterLow
                 lda #$00
-                adc ZP.counterHigh
+                adc ZP.counterHigh      // Add carry to high byte
                 sta ZP.counterHigh
-                cld
+                cld                     // Clear decimal mode
                 lda #$e7
                 sta ZP.ProcessPortBit
                 lda #$37
