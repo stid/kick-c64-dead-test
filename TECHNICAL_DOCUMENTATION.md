@@ -1,0 +1,278 @@
+# Commodore 64 Dead Test - Technical Documentation
+
+## Overview
+
+This is a comprehensive hardware diagnostic tool for the Commodore 64, designed to systematically test all critical components even when the system is severely damaged. Based on the original COMMODORE 64 Dead Test rev. 781220, this version has been enhanced with improved visual feedback, additional tests, and better code organization.
+
+## Architecture and Design Philosophy
+
+### Cartridge Mode
+
+The diagnostic runs as an Ultimax cartridge (GAME=0, EXROM=1), which:
+
+- Overwrites the C64 Kernal ROM space ($E000-$FFFF)
+- Ensures the diagnostic starts even with a faulty Kernal ROM
+- All hardware vectors ($FFFA-$FFFF) point to the main loop
+
+### Progressive Testing Strategy
+
+Tests are ordered from most critical to least critical:
+
+1. **Pre-display tests** (black screen): Basic RAM functionality
+2. **Foundation tests**: Zero page and stack (still no JSR/RTS)
+3. **Display tests**: Screen and color RAM
+4. **Extended tests**: General RAM, fonts, sound
+
+### Key Design Constraint
+
+Early tests (memory bank, zero page, stack) cannot use:
+
+- JSR/RTS instructions (stack not verified)
+- Any stack operations (PHA/PLA)
+- Only JMP for flow control
+
+## Detailed Test Analysis
+
+### 1. Memory Bank Test (Black Screen Phase)
+
+**Purpose**: Verify basic RAM functionality before any visual output
+
+**Test Pattern** (20 bytes):
+
+```text
+$00 - All bits off
+$55 - Alternating bits (01010101)
+$AA - Alternating bits (10101010)
+$FF - All bits on
+$01,$02,$04,$08,$10,$20,$40,$80 - Walking ones
+$FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
+```
+
+**Algorithm**:
+
+1. Write pattern byte to all memory pages ($0100-$0FFF) simultaneously
+2. Delay to ensure memory settling
+3. Verify each page matches expected pattern
+4. Test each pattern byte across all memory before moving to next
+
+**Failure Detection**:
+
+- XOR failed value with expected to identify bad bits
+- Each bit corresponds to a specific RAM chip:
+  - Bit 0 → U21 (Bank 8)
+  - Bit 1 → U9 (Bank 7)
+  - Bit 2 → U22 (Bank 6)
+  - Bit 3 → U10 (Bank 5)
+  - Bit 4 → U23 (Bank 4)
+  - Bit 5 → U11 (Bank 3)
+  - Bit 6 → U24 (Bank 2)
+  - Bit 7 → U12 (Bank 1)
+- Screen flashes white/black N times for chip N
+
+### 2. Zero Page Test ($00-$FF)
+
+**Purpose**: Test the most critical 256 bytes used for:
+
+- Variable storage
+- Indirect addressing pointers
+- Fast 2-cycle instructions
+
+**Method**:
+
+- Tests from $12 onwards (preserves test's own variables)
+- Same 20-byte pattern as memory test
+- Still cannot use stack operations
+
+### 3. Stack Page Test ($0100-$01FF)
+
+**Purpose**: Verify stack memory for:
+
+- Subroutine calls (JSR/RTS)
+- Interrupt handling
+- Temporary storage (PHA/PLA)
+
+**Significance**: After this test passes, the code can use JSR/RTS and full 6502 functionality
+
+### 4. Screen RAM Test ($0400-$07FF)
+
+**Purpose**: Test 1KB of screen memory
+
+**Features**:
+
+- Non-destructive testing (saves/restores content)
+- Tests beyond visible screen area
+- Full pattern verification
+
+### 5. Color RAM Test ($D800-$DBFF)
+
+**Purpose**: Test the separate 4-bit color RAM chip
+
+**Special Handling**:
+
+- Only lower 4 bits are valid (masked with `and #$0f`)
+- Uses 12-byte pattern suitable for 4-bit values
+- Tests all 16 possible colors
+
+### 6. General RAM Test ($0800-$0FFF)
+
+**Purpose**: Thorough byte-by-byte test of remaining lower RAM
+
+### 7. Font Test
+
+**Purpose**: Verify custom character set loading
+
+- Copies 512 bytes to character RAM
+- Ensures character generator works
+
+### 8. Sound Test
+
+**Purpose**: Test SID chip oscillators and envelopes
+
+**Method**:
+
+- Tests each voice sequentially
+- 7 different frequencies per voice
+- Increasing volume per voice (diagnostic aid)
+- ADSR envelope: Attack=3, Decay=E, Sustain=C, Release=A
+
+### 9. Filter Test (Your Addition)
+
+**Purpose**: Test analog filter components
+
+**Why Important**:
+
+- Filters use analog components (capacitors) that degrade
+- Failures are subtle and not detected by oscillator tests
+- Based on Andrew Challis's SID tester methodology
+
+**Method**:
+
+1. Sweeps filter cutoff frequency (0-255)
+2. Tests all filter types (low/band/high-pass)
+3. Uses two test frequencies (15 and 45)
+4. Gate on/off cycling creates audible sweep
+5. Working filters produce characteristic "whoosh" sound
+
+## Visual Enhancements
+
+### 1. Border Color Cycling
+
+- Border color = test counter + 2
+- Provides visual progress indication
+- Helps identify color generation issues
+
+### 2. Color Reference Bar
+
+- 40-character bar showing all color values
+- Located at bottom of screen
+- Uses inverted space ($3A) for solid blocks
+- Immediate reference for color accuracy
+
+### 3. Chip Location Display
+
+- Visual diagram shows RAM chip positions
+- "BAD" appears at failed chip location
+- Red color for failed indicators
+
+## CIA Timer Integration
+
+The diagnostic maintains CIA timers for:
+
+- Timing accuracy
+- Visual timer display
+- Ensures CIA functionality
+
+## Test Flow Summary
+
+```text
+1. Initialize (SEI, set processor port)
+2. Black screen memory bank test
+   → Failure: Flash screen N times for chip N
+3. Draw layout (only after RAM verified)
+4. Zero page test → Show OK/BAD
+5. Stack test → Show OK/BAD
+6. Enable JSR/RTS usage
+7. Screen RAM test → Show OK/BAD
+8. Color RAM test → Show OK/BAD
+9. General RAM test → Show OK/BAD
+10. Font test (no display)
+11. Sound test (audible)
+12. Filter test (audible sweep)
+13. Increment counter
+14. Clear screen and restart
+```
+
+## Failure Handling
+
+**Memory Bank Test Failure**:
+
+- Screen flashing pattern
+- Number of flashes = failed chip number
+- Infinite loop (system halted)
+
+**Other Test Failures**:
+
+- Display "BAD" at test location
+- Show failed chip ID in diagram
+- Enter infinite loop (deadLoop)
+
+## Memory Map
+
+```text
+$0000-$00FF - Zero page (test variables $00-$11)
+$0100-$01FF - Stack
+$0400-$07FF - Screen RAM
+$0800-$0FFF - General RAM / Character set
+$D000-$D3FF - VIC-II registers
+$D400-$D7FF - SID registers
+$D800-$DBFF - Color RAM
+$DC00-$DCFF - CIA 1
+$DD00-$DDFF - CIA 2
+$E000-$FFFF - Diagnostic code (cartridge ROM)
+```
+
+## Improvements Over Original
+
+1. **Visual Enhancements**:
+
+   - Color reference bar
+   - Border color cycling
+   - Better initial colors
+
+2. **Additional Tests**:
+
+   - Comprehensive SID filter test
+   - More thorough pattern testing
+
+3. **Code Organization**:
+
+   - Modular file structure
+   - Clear separation of concerns
+   - Extensive comments and labels
+   - Macro usage for common patterns
+
+4. **Diagnostic Aids**:
+   - Visual progress indication
+   - Better failure identification
+   - Enhanced audio feedback
+
+## Potential Future Enhancements
+
+1. **Additional Tests**:
+
+   - CIA timer tests
+   - Keyboard matrix test
+   - Joystick port test
+   - Serial port test
+   - Cassette port test
+
+2. **Enhanced Diagnostics**:
+
+   - Test result logging to serial
+   - More detailed failure analysis
+   - Memory address failure reporting
+
+3. **User Interface**:
+   - Test selection menu
+   - Continuous vs single-pass mode
+   - Detailed help screens
