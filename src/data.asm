@@ -52,25 +52,51 @@ colorRamPattern:
                 .byte $05       // 0101 - alternating bits
                 .byte $0a       // 1010 - inverse alternating
                 .byte $0f       // 1111 - all bits on
-                
+
                 // 4-bit walking ones
                 .byte $01       // 0001 - bit 0
                 .byte $02       // 0010 - bit 1
                 .byte $04       // 0100 - bit 2
                 .byte $08       // 1000 - bit 3
-                
+
                 // 4-bit walking zeros
                 .byte $0e       // 1110 - all except bit 0
                 .byte $0d       // 1101 - all except bit 1
                 .byte $0b       // 1011 - all except bit 2
                 .byte $07       // 0111 - all except bit 3
 
+// PRN (Pseudo-Random Number) Test Pattern - 247 bytes
+// Used for detecting address bus problems and page confusion
+// The 247-byte length (prime-like odd number) ensures the pattern
+// drifts out of alignment with 256-byte page boundaries, making it
+// effective at catching mirrored or swapped address lines
+//
+// Generated using: value = ((value * 17) + 137) & 0xFF, seed = 0x42
+// This creates good bit distribution and non-obvious patterns
+PrnTestPattern:
+                .byte $eb,$24,$ed,$46,$2f,$a8,$b1,$4a,$73,$2c,$75,$4e,$b7,$b0,$39,$52
+                .byte $fb,$34,$fd,$56,$3f,$b8,$c1,$5a,$83,$3c,$85,$5e,$c7,$c0,$49,$62
+                .byte $0b,$44,$0d,$66,$4f,$c8,$d1,$6a,$93,$4c,$95,$6e,$d7,$d0,$59,$72
+                .byte $1b,$54,$1d,$76,$5f,$d8,$e1,$7a,$a3,$5c,$a5,$7e,$e7,$e0,$69,$82
+                .byte $2b,$64,$2d,$86,$6f,$e8,$f1,$8a,$b3,$6c,$b5,$8e,$f7,$f0,$79,$92
+                .byte $3b,$74,$3d,$96,$7f,$f8,$01,$9a,$c3,$7c,$c5,$9e,$07,$00,$89,$a2
+                .byte $4b,$84,$4d,$a6,$8f,$08,$11,$aa,$d3,$8c,$d5,$ae,$17,$10,$99,$b2
+                .byte $5b,$94,$5d,$b6,$9f,$18,$21,$ba,$e3,$9c,$e5,$be,$27,$20,$a9,$c2
+                .byte $6b,$a4,$6d,$c6,$af,$28,$31,$ca,$f3,$ac,$f5,$ce,$37,$30,$b9,$d2
+                .byte $7b,$b4,$7d,$d6,$bf,$38,$41,$da,$03,$bc,$05,$de,$47,$40,$c9,$e2
+                .byte $8b,$c4,$8d,$e6,$cf,$48,$51,$ea,$13,$cc,$15,$ee,$57,$50,$d9,$f2
+                .byte $9b,$d4,$9d,$f6,$df,$58,$61,$fa,$23,$dc,$25,$fe,$67,$60,$e9,$02
+                .byte $ab,$e4,$ad,$06,$ef,$68,$71,$0a,$33,$ec,$35,$0e,$77,$70,$f9,$12
+                .byte $bb,$f4,$bd,$16,$ff,$78,$81,$1a,$43,$fc,$45,$1e,$87,$80,$09,$22
+                .byte $cb,$04,$cd,$26,$0f,$88,$91,$2a,$53,$0c,$55,$2e,$97,$90,$19,$32
+                .byte $db,$14,$dd,$36,$1f,$98,$a1
 
 .encoding       "screencode_mixed"
 strAbout:       .text "c-64 dead test rev stid 1.2.0"
 strCount:       .text "count"
 strZero:        .text "zero page"
 strStack:       .text "stack page"
+strLowRam:      .text "low ram"
 strRam:         .text "ram test"
 srtColor:       .text "color ram"
 strSound:       .text "sound test"

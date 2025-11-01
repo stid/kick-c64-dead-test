@@ -20,8 +20,9 @@ Tests are ordered from most critical to least critical:
 
 1. **Pre-display tests** (black screen): Basic RAM functionality
 2. **Foundation tests**: Zero page and stack (still no JSR/RTS)
-3. **Display tests**: Screen and color RAM
-4. **Extended tests**: General RAM, fonts, sound
+3. **Low RAM completeness**: Test previously untested $0200-$03FF
+4. **Display tests**: Screen and color RAM
+5. **Extended tests**: General RAM, fonts, sound
 
 ### Key Design Constraint
 
@@ -93,7 +94,33 @@ $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
 
 **Significance**: After this test passes, the code can use JSR/RTS and full 6502 functionality
 
-### 4. Screen RAM Test ($0400-$07FF)
+### 4. Low RAM Test ($0200-$03FF)
+
+**Purpose**: Test the previously untested 512 bytes between stack and screen RAM
+
+**Test Pattern Philosophy** (suggested by community member Sven):
+
+1. $AA pattern (10101010) - Detects even-bit stuck failures
+2. $55 pattern (01010101) - Detects odd-bit stuck failures
+3. 247-byte PRN sequence - Detects address bus problems and page confusion
+
+**Why 247-byte PRN sequence?**
+
+- Prime-like odd length ensures pattern "drifts" relative to page boundaries
+- After 247 bytes, pattern repeats but at different offset within 256-byte pages
+- Catches mirrored or confused address lines that 256-aligned tests miss
+- If pages are swapped or address lines crossed, PRN will be out of phase
+
+**Algorithm**:
+
+1. Write $AA to entire region, delay, verify
+2. Write $55 to entire region, delay, verify
+3. Write repeating 247-byte PRN sequence, delay, verify
+4. Any mismatch indicates RAM or address bus failure
+
+**Completeness**: With this test, 100% of Ultimax-accessible RAM is now tested ($0000-$0FFF)
+
+### 5. Screen RAM Test ($0400-$07FF)
 
 **Purpose**: Test 1KB of screen memory
 
@@ -103,7 +130,7 @@ $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
 - Tests beyond visible screen area
 - Full pattern verification
 
-### 5. Color RAM Test ($D800-$DBFF)
+### 6. Color RAM Test ($D800-$DBFF)
 
 **Purpose**: Test the separate 4-bit color RAM chip
 
@@ -113,11 +140,11 @@ $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
 - Uses 12-byte pattern suitable for 4-bit values
 - Tests all 16 possible colors
 
-### 6. General RAM Test ($0800-$0FFF)
+### 7. General RAM Test ($0800-$0FFF)
 
 **Purpose**: Thorough byte-by-byte test of remaining lower RAM
 
-### 7. Font Test
+### 8. Font Test
 
 **Purpose**: Verify custom character set loading
 

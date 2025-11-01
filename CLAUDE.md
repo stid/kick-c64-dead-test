@@ -59,10 +59,11 @@ src/
 ├── macros.asm            - Reusable assembly macros
 ├── mem_map.asm           - Memory layout definitions
 ├── zeropage_map.asm      - Zero page variable definitions
-├── data.asm              - Static data (fonts, test patterns)
+├── data.asm              - Static data (fonts, test patterns, PRN sequence)
 ├── mem_bank_test.asm     - Initial black screen RAM test
 ├── zero_page_test.asm    - Tests $00-$FF
 ├── stack_page_test.asm   - Tests $0100-$01FF (enables JSR/RTS after)
+├── low_ram_test.asm      - Tests $0200-$03FF with AA/55/PRN patterns
 ├── screen_ram_test.asm   - Tests display memory
 ├── color_ram_test.asm    - Tests color memory
 ├── ram_test.asm          - General RAM testing
@@ -96,10 +97,11 @@ This is a Commodore 64 diagnostic tool that tests hardware components in a speci
 2. **Layout Drawing** - Initializes display after RAM passes
 3. **Zero Page Test** - Tests $00-$FF memory
 4. **Stack Page Test** - Tests $0100-$01FF
-5. **Screen/Color RAM Tests** - Tests display memory
-6. **General RAM Test** - Extended memory testing
-7. **Font Test** - Character ROM verification
-8. **Sound/Filter Tests** - SID chip testing
+5. **Low RAM Test** - Tests $0200-$03FF (previously untested, uses AA/55/PRN patterns)
+6. **Screen/Color RAM Tests** - Tests display memory
+7. **General RAM Test** - Extended memory testing
+8. **Font Test** - Character ROM verification
+9. **Sound/Filter Tests** - SID chip testing
 
 ### Key Architectural Principles
 
