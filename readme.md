@@ -1,7 +1,7 @@
 # Commodore 64 Dead Test - Kick Assembler Port
 
 [![Build Status](https://github.com/stid/kick-c64-dead-test/workflows/Build%20Dead%20Test/badge.svg)](https://github.com/stid/kick-c64-dead-test/actions)
-[![Version](https://img.shields.io/badge/version-1.2.0-blue)](https://github.com/stid/kick-c64-dead-test/releases)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue)](https://github.com/stid/kick-c64-dead-test/releases)
 [![Platform](https://img.shields.io/badge/platform-C64%20%7C%20C128-orange)]()
 
 > **Quick Start**: Download the [latest release](https://github.com/stid/kick-c64-dead-test/releases) and burn `dead-test.bin` to an EPROM, or run `dead-test.crt` in VICE.
@@ -12,8 +12,9 @@ A comprehensive hardware diagnostic tool for the Commodore 64, designed to test 
 
 ## Why This Version?
 
+- ✅ **Complete RAM coverage** - New Low RAM test covers previously untested $0200-$03FF region
 - ✅ **Enhanced visual feedback** - Color reference bar and border cycling
-- ✅ **SID filter test** - Detects analog filter failures missed by other tests  
+- ✅ **SID filter test** - Detects analog filter failures missed by other tests
 - ✅ **Modern codebase** - Modular structure with extensive documentation
 - ✅ **Preserved compatibility** - Original test logic remains untouched
 - ✅ **Open development** - Clear attribution and contribution guidelines
@@ -88,15 +89,29 @@ The dead test should start with the familiar black screen. During this phase, th
 
 ## Differences from the Original rev. 781220 Dead Test
 
-The original test logic and sequence remain untouched - it should behave exactly like the original. Below are the main differences between this version and the original rev. 781220:
+The original test logic and sequence remain untouched where applicable. Below are the enhancements and differences between this version and the original rev. 781220:
 
-- **Code has been split** into small chunks and KickAssembler imports are used to include related dependencies. This changes the way the different parts of code are ordered in memory.
-- **Border & background colors are different** from the original version at startup. Additionally, the border color cycles through all 16 colors (0-15) with each test execution.
-- **A color reference bar** is rendered at the bottom of the screen, just above the counter and timer info. I've found this to be a useful reference for quickly checking color issues when testing a machine.
-- **Small optimizations** have been added to the code.
-- Compared to the worldofjani.com original disassembly, **constants, labels & comments** have been added to the code. This is definitely something that can be further improved.
-- I personalized the about string (**hacked by**) :) - couldn't resist.
-- A **sound filters test** was added just after the original sound test. This was suggested in the Facebook group "Commodore 64/128 Programming" and is based on this video: https://www.youtube.com/watch?v=QYgfcvlqIlc&t=1438s. Broken filters are not easily detected with the sound test alone.
+### New Tests (Not in Original)
+
+- **Low RAM Test** (v1.3.0) - Tests the previously untested $0200-$03FF memory region (512 bytes between stack and screen RAM). Uses three test patterns:
+  - `$AA` pattern (10101010) - Detects stuck-high bits on even positions
+  - `$55` pattern (01010101) - Detects stuck-low bits on odd positions
+  - 247-byte PRN sequence - Detects address bus problems and page confusion (prime-like length ensures non-alignment with 256-byte pages to catch mirrored or crossed address lines)
+
+- **Sound Filters Test** (v1.2.0) - Tests SID analog filters which are prone to capacitor aging. Based on Andrew Challis's methodology (video: https://www.youtube.com/watch?v=QYgfcvlqIlc&t=1438s). Broken filters are often not detected by the basic oscillator test alone.
+
+### Visual Enhancements
+
+- **Border color cycling** - Border cycles through all 16 colors (0-15) with each test iteration
+- **Color reference bar** - Rendered at bottom of screen for quick color output verification
+- **Border & background colors** differ from the original at startup
+
+### Code Improvements
+
+- **Modular structure** - Code split into separate files using KickAssembler imports
+- **Enhanced documentation** - Extensive comments, constants, and labels added
+- **Small optimizations** throughout the codebase
+- Personalized the about string (**hacked by**) :)
 
 ## Customizing the Dead Test
 
@@ -106,19 +121,20 @@ You should be able to customize this version quite easily, assuming you have pro
 
 ## Test Flow
 
-As mentioned above, the test logic and **flow remain untouched** and should be identical to the Dead Test rev. 781220. This is the high-level flow executed during each test cycle:
+The original test logic remains preserved, with new tests inserted at appropriate points. This is the complete flow executed during each test cycle:
 
-1. memBankTest - Black screen; if test fails, jumps to screen blinking and enters infinite loop
-2. drawLayout executed - VIC initialized
-3. zeroPageTest
-4. stackPageTest
-5. screenRamTest
-6. colorRamTest
-7. ramTest
-8. fontTest
-9. soundTest
-10. filtersTest
-11. Counter updated, loop to VIC initialization and restart tests
+1. **memBankTest** - Black screen (~10 seconds); if test fails, screen blinks and enters infinite loop
+2. **drawLayout** - VIC initialized, screen layout drawn
+3. **zeroPageTest** - Tests $00-$FF (original test)
+4. **stackPageTest** - Tests $0100-$01FF, enables JSR/RTS after passing (original test)
+5. **lowRamTest** - Tests $0200-$03FF with AA/55/PRN patterns (**NEW in v1.3.0**)
+6. **screenRamTest** - Tests $0400-$07FF display memory (original test)
+7. **colorRamTest** - Tests $D800-$DBFF color memory (original test)
+8. **ramTest** - Tests $0800-$0FFF extended RAM (original test)
+9. **fontTest** - Verifies character ROM (original test)
+10. **soundTest** - Tests SID oscillators (original test)
+11. **filtersTest** - Tests SID analog filters (**NEW in v1.2.0**)
+12. Counter updated, border color incremented, loop back to step 2
 
 ## Burning EPROM & Compatible Cartridge
 
