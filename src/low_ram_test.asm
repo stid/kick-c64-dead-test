@@ -10,10 +10,9 @@
 // Enable this to simulate a RAM failure for validation testing
 // When enabled, simulates a bit 0 (U21 chip) failure in the $AA pattern test
 //
-// Usage: Build with 'make test-mode' or manually edit test_mode_config.asm
+// Usage: Build with 'make test-mode' (passes -define TEST_MODE_ENABLED from command line)
 //=============================================================================
-.var TEST_MODE = 0              // Default: disabled
-#import "./test_mode_config.asm"  // Override if test mode enabled
+// Note: TEST_MODE_ENABLED is defined via -define flag when building test mode
 
         * = * "low ram test"
 
@@ -80,17 +79,17 @@ lowRamTest: {
                 ldx #$00
         verifyAALoop:
                 lda $0200,x                     // Read actual value
-.if (TEST_MODE == 1) {
+#if TEST_MODE_ENABLED
                 // TEST MODE: Simulate bit 0 (U21 chip) failure
                 eor #$01                        // Flip bit 0 to simulate failure
-}
+#endif
                 cmp #$aa                        // Compare with expected
                 bne !fail+                      // If mismatch, identify chip
                 lda $0300,x                     // Read actual value from page 3
-.if (TEST_MODE == 1) {
+#if TEST_MODE_ENABLED
                 // TEST MODE: Simulate bit 0 (U21 chip) failure
                 eor #$01                        // Flip bit 0 to simulate failure
-}
+#endif
                 cmp #$aa                        // Compare with expected
                 bne !fail+                      // If mismatch, identify chip
                 inx

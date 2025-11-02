@@ -58,16 +58,21 @@ build: check-tools $(BUILD_PATH)
 	@echo "  - $(CRT_FILE)"
 	@echo "  - $(BIN_FILE)"
 
-# Run in emulator
-run: build
+# Run in emulator (runs whatever is currently built)
+run:
 	@echo "Starting $(PROJECT_NAME) in VICE..."
 	@command -v $(X64SC) >/dev/null 2>&1 || { echo "Error: x64sc not found. Please install VICE."; exit 1; }
+	@test -f $(CRT_FILE) || { echo "Error: No cartridge file found. Run 'make' or 'make test-mode' first."; exit 1; }
 	@$(X64SC) $(CRT_FILE)
 
-# Run with debug options
-debug: build
+# Build and run in one step
+build-and-run: build run
+
+# Run with debug options (runs whatever is currently built)
+debug:
 	@echo "Starting $(PROJECT_NAME) in VICE with monitor..."
 	@command -v $(X64SC) >/dev/null 2>&1 || { echo "Error: x64sc not found. Please install VICE."; exit 1; }
+	@test -f $(CRT_FILE) || { echo "Error: No cartridge file found. Run 'make' or 'make test-mode' first."; exit 1; }
 	@$(X64SC) -moncommands $(BUILD_PATH)/monitor.txt $(CRT_FILE) 2>/dev/null || $(X64SC) $(CRT_FILE)
 
 # Build with test mode enabled (simulates RAM failure for validation)
@@ -76,21 +81,11 @@ test-mode: check-tools $(BUILD_PATH)
 	@echo "WARNING: This build will intentionally FAIL the Low RAM test!"
 	@echo "Expected: U21 (bit 0) will show as BAD in the chip diagram"
 	@echo ""
-	@echo "Enabling TEST_MODE in source..."
-	@echo ".eval TEST_MODE = 1           // Enabled by make test-mode" > $(SRC_PATH)/test_mode_config.asm
-	@echo "Compiling assembly code with TEST_MODE enabled..."
-	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) $(MAIN_SOURCE) || { \
+	@echo "Compiling with TEST_MODE_ENABLED defined..."
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_ENABLED $(MAIN_SOURCE) || { \
 		echo "Assembly failed!"; \
-		echo "// .eval TEST_MODE = 1           // Uncommented by make test-mode" > $(SRC_PATH)/test_mode_config.asm; \
 		exit 1; \
 	}
-	@echo "Restoring test_mode_config.asm..."
-	@echo "//=============================================================================" > $(SRC_PATH)/test_mode_config.asm
-	@echo "// TEST MODE CONFIGURATION" >> $(SRC_PATH)/test_mode_config.asm
-	@echo "// This file is automatically modified by 'make test-mode'" >> $(SRC_PATH)/test_mode_config.asm
-	@echo "// DO NOT manually edit - your changes will be overwritten" >> $(SRC_PATH)/test_mode_config.asm
-	@echo "//=============================================================================" >> $(SRC_PATH)/test_mode_config.asm
-	@echo "// .eval TEST_MODE = 1           // Uncommented by make test-mode" >> $(SRC_PATH)/test_mode_config.asm
 	@echo "Converting to cartridge format..."
 	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
 	@echo "Creating binary for EPROM..."
@@ -100,7 +95,7 @@ test-mode: check-tools $(BUILD_PATH)
 	@echo "This build will show LOW RAM as BAD with U21 chip failure."
 	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
 	@echo ""
-	@echo "To build normal version: make clean && make"
+	@echo "Note: No source files modified - test mode uses compile-time flag"
 
 # Clean build artifacts
 clean:
@@ -155,13 +150,14 @@ help:
 	@echo "Main Targets:"
 	@echo "  all          - Build the project (default)"
 	@echo "  build        - Compile and create .prg, .crt, and .bin files"
-	@echo "  run          - Build and run in VICE emulator"
-	@echo "  debug        - Build and run with VICE monitor"
+	@echo "  run          - Run currently built cartridge in VICE emulator"
+	@echo "  build-and-run- Build and run in one step"
+	@echo "  debug        - Run with VICE monitor (no rebuild)"
 	@echo "  test         - Run automated test in VICE"
 	@echo "  clean        - Remove all build artifacts"
 	@echo ""
 	@echo "Development Targets:"
-	@echo "  test-mode    - Build with simulated RAM failure (for testing)"
+	@echo "  test-mode    - Build with simulated RAM failure (Low RAM U21 chip)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
 	@echo "  release      - Create release package (v$(VERSION))"
@@ -177,7 +173,8 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo "  make                    # Build the project"
-	@echo "  make run                # Build and run in emulator"
+	@echo "  make build-and-run      # Build and run in emulator"
+	@echo "  make test-mode && make run  # Test RAM failure simulation"
 	@echo "  make test               # Run automated test"
 	@echo "  make release            # Create release package"
 	@echo "  make VERSION=1.3.0 release  # Create release with custom version"
