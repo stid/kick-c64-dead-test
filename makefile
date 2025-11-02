@@ -21,7 +21,6 @@ LOG_FILE = $(BUILD_PATH)/buildlog.txt
 
 # KickAssembler options
 KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
-KICKASS_TESTMODE_OPTS = $(KICKASS_OPTS) -define TEST_MODE=1
 
 # Version
 VERSION ?= 1.3.0
@@ -77,8 +76,21 @@ test-mode: check-tools $(BUILD_PATH)
 	@echo "WARNING: This build will intentionally FAIL the Low RAM test!"
 	@echo "Expected: U21 (bit 0) will show as BAD in the chip diagram"
 	@echo ""
-	@echo "Compiling assembly code with TEST_MODE defined..."
-	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_TESTMODE_OPTS) $(MAIN_SOURCE) || { echo "Assembly failed!"; exit 1; }
+	@echo "Enabling TEST_MODE in source..."
+	@echo ".eval TEST_MODE = 1           // Enabled by make test-mode" > $(SRC_PATH)/test_mode_config.asm
+	@echo "Compiling assembly code with TEST_MODE enabled..."
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		echo "// .eval TEST_MODE = 1           // Uncommented by make test-mode" > $(SRC_PATH)/test_mode_config.asm; \
+		exit 1; \
+	}
+	@echo "Restoring test_mode_config.asm..."
+	@echo "//=============================================================================" > $(SRC_PATH)/test_mode_config.asm
+	@echo "// TEST MODE CONFIGURATION" >> $(SRC_PATH)/test_mode_config.asm
+	@echo "// This file is automatically modified by 'make test-mode'" >> $(SRC_PATH)/test_mode_config.asm
+	@echo "// DO NOT manually edit - your changes will be overwritten" >> $(SRC_PATH)/test_mode_config.asm
+	@echo "//=============================================================================" >> $(SRC_PATH)/test_mode_config.asm
+	@echo "// .eval TEST_MODE = 1           // Uncommented by make test-mode" >> $(SRC_PATH)/test_mode_config.asm
 	@echo "Converting to cartridge format..."
 	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
 	@echo "Creating binary for EPROM..."
