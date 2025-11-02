@@ -10,7 +10,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 ## [1.3.0] - 2025
 
 ### Added
-- **Low RAM Test** - New test module for previously untested $0200-$03FF region
+- **Low RAM Test** - New test module for previously untested $0200-$03FF region (test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965))
   - Tests 512 bytes between stack page and screen RAM
   - Uses three-phase testing approach:
     1. $AA pattern (10101010) - detects even-bit stuck failures

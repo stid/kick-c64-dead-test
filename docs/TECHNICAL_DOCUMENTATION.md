@@ -98,7 +98,7 @@ $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
 
 **Purpose**: Test the previously untested 512 bytes between stack and screen RAM
 
-**Test Pattern Philosophy** (suggested by community member Sven):
+**Test Pattern Philosophy** (suggested by [Sven Petersen](https://github.com/svenpetersen1965)):
 
 1. $AA pattern (10101010) - Detects even-bit stuck failures
 2. $55 pattern (01010101) - Detects odd-bit stuck failures

@@ -29,7 +29,7 @@
 // - Essential for completeness in diagnostic cartridge
 // - Used by BASIC and Kernal for various purposes
 //
-// Test Pattern Philosophy (suggested by Sven):
+// Test Pattern Philosophy (suggested by Sven Petersen - https://github.com/svenpetersen1965):
 // 1. $AA pattern: Detects even-bit stuck failures
 // 2. $55 pattern: Detects odd-bit stuck failures
 // 3. PRN sequence (247 bytes): Detects address bus problems and page confusion
