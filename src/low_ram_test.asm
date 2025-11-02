@@ -123,33 +123,34 @@ lowRamTest: {
                 lda #>$0200
                 sta ZP.tmpDestAddressHigh
 
-                // Write PRN sequence to entire 512-byte region
+                // Initialize PRN pattern index
+                ldx #$00
+
+                // Write PRN sequence byte-by-byte to entire 512-byte region
                 // Pattern repeats every 247 bytes, ensuring non-alignment
         writePRNLoop:
-                ldy #$00                        // PRN pattern index
-        writePRNPage:
-                lda PrnTestPattern,y
-                sta (ZP.tmpDestAddressLow),y
-                iny
-                cpy #247                        // PRN pattern length
-                bne writePRNPage
+                lda PrnTestPattern,x            // Get pattern byte
+                ldy #$00
+                sta (ZP.tmpDestAddressLow),y    // Write to current address
 
-                // Move to next PRN cycle (or next page if needed)
-                clc
-                lda ZP.tmpDestAddressLow
-                adc #247                        // Add pattern length
-                sta ZP.tmpDestAddressLow
-                bcc !+                          // No page overflow
-                inc ZP.tmpDestAddressHigh       // Handle page boundary
+                // Advance PRN pattern index (wraps at 247)
+                inx
+                cpx #247
+                bne !+
+                ldx #$00                        // Wrap to start of pattern
 
-        !:      // Check if we've written entire 512-byte region
+        !:      // Increment address pointer
+                inc ZP.tmpDestAddressLow
+                bne !+
+                inc ZP.tmpDestAddressHigh
+
+        !:      // Check if we've reached $0400 (screen RAM)
                 lda ZP.tmpDestAddressHigh
-                cmp #>$0400                     // Stop at $0400
-                bcc writePRNLoop                // Continue if below $0400
-                bne writePRNDone                // Stop if above $0400
+                cmp #>$0400
+                bne writePRNLoop                // Continue if not at $04xx
                 lda ZP.tmpDestAddressLow
                 cmp #<$0400
-                bcc writePRNLoop                // Continue if below $0400
+                bne writePRNLoop                // Continue if not at $0400
 
         writePRNDone:
                 // Add delay for memory settling
@@ -162,36 +163,38 @@ lowRamTest: {
                 lda #>$0200
                 sta ZP.tmpDestAddressHigh
 
-        verifyPRNLoop:
-                ldy #$00                        // PRN pattern index
-        verifyPRNPage:
-                lda PrnTestPattern,y
-                cmp (ZP.tmpDestAddressLow),y
-                bne !fail+                      // Mismatch = failure
-                iny
-                cpy #247                        // PRN pattern length
-                bne verifyPRNPage
-                jmp !next+
-        !fail:
-                jmp testFailed
-        !next:
+                // Reset PRN pattern index
+                ldx #$00
 
-                // Move to next PRN cycle
-                clc
-                lda ZP.tmpDestAddressLow
-                adc #247
-                sta ZP.tmpDestAddressLow
-                bcc !+
+                // Verify PRN sequence byte-by-byte
+        verifyPRNLoop:
+                lda PrnTestPattern,x            // Get expected pattern byte
+                ldy #$00
+                cmp (ZP.tmpDestAddressLow),y    // Compare with memory
+                bne !fail+                      // Mismatch = failure
+
+                // Advance PRN pattern index (wraps at 247)
+                inx
+                cpx #247
+                bne !+
+                ldx #$00                        // Wrap to start of pattern
+
+        !:      // Increment address pointer
+                inc ZP.tmpDestAddressLow
+                bne !+
                 inc ZP.tmpDestAddressHigh
 
-        !:      // Check if we've verified entire region
+        !:      // Check if we've reached $0400 (screen RAM)
                 lda ZP.tmpDestAddressHigh
                 cmp #>$0400
-                bcc verifyPRNLoop
-                bne allTestsPassed
+                bne verifyPRNLoop               // Continue if not at $04xx
                 lda ZP.tmpDestAddressLow
                 cmp #<$0400
-                bcc verifyPRNLoop
+                bne verifyPRNLoop               // Continue if not at $0400
+                jmp allTestsPassed
+
+        !fail:
+                jmp testFailed
 
         allTestsPassed:
                 // All patterns passed!
