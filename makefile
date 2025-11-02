@@ -21,12 +21,13 @@ LOG_FILE = $(BUILD_PATH)/buildlog.txt
 
 # KickAssembler options
 KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
+KICKASS_TESTMODE_OPTS = $(KICKASS_OPTS) -define TEST_MODE=1
 
 # Version
-VERSION ?= 1.2.0
+VERSION ?= 1.3.0
 
 # Phony targets
-.PHONY: all build clean run debug help check-tools test release check version
+.PHONY: all build clean run debug help check-tools test release check version test-mode
 
 # Default target
 all: build
@@ -69,6 +70,25 @@ debug: build
 	@echo "Starting $(PROJECT_NAME) in VICE with monitor..."
 	@command -v $(X64SC) >/dev/null 2>&1 || { echo "Error: x64sc not found. Please install VICE."; exit 1; }
 	@$(X64SC) -moncommands $(BUILD_PATH)/monitor.txt $(CRT_FILE) 2>/dev/null || $(X64SC) $(CRT_FILE)
+
+# Build with test mode enabled (simulates RAM failure for validation)
+test-mode: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL the Low RAM test!"
+	@echo "Expected: U21 (bit 0) will show as BAD in the chip diagram"
+	@echo ""
+	@echo "Compiling assembly code with TEST_MODE defined..."
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_TESTMODE_OPTS) $(MAIN_SOURCE) || { echo "Assembly failed!"; exit 1; }
+	@echo "Converting to cartridge format..."
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@echo "Creating binary for EPROM..."
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo ""
+	@echo "TEST MODE build complete!"
+	@echo "This build will show LOW RAM as BAD with U21 chip failure."
+	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
+	@echo ""
+	@echo "To build normal version: make clean && make"
 
 # Clean build artifacts
 clean:
@@ -129,6 +149,7 @@ help:
 	@echo "  clean        - Remove all build artifacts"
 	@echo ""
 	@echo "Development Targets:"
+	@echo "  test-mode    - Build with simulated RAM failure (for testing)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
 	@echo "  release      - Create release package (v$(VERSION))"

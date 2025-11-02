@@ -3,6 +3,17 @@
 #import "./mem_map.asm"
 #import "./macros.asm"
 #import "./zeropage_map.asm"
+#import "./u_failure.asm"
+
+//=============================================================================
+// TEST MODE CONFIGURATION
+// Enable this to simulate a RAM failure for validation testing
+// When enabled, simulates a bit 0 (U21 chip) failure in the $AA pattern test
+//
+// Usage: Uncomment the line below, or pass -define TEST_MODE=1 to KickAssembler
+// Build: make test-mode
+//=============================================================================
+//.define TEST_MODE
 
         * = * "low ram test"
 
@@ -66,18 +77,27 @@ lowRamTest: {
                 ShortDelayLoop($3f)
 
                 // Verify $AA pattern
-                lda #$aa
                 ldx #$00
         verifyAALoop:
-                cmp $0200,x
-                bne !fail+
-                cmp $0300,x
-                bne !fail+
+                lda $0200,x                     // Read actual value
+#if TEST_MODE
+                // TEST MODE: Simulate bit 0 (U21 chip) failure
+                eor #$01                        // Flip bit 0 to simulate failure
+#endif
+                cmp #$aa                        // Compare with expected
+                bne !fail+                      // If mismatch, identify chip
+                lda $0300,x                     // Read actual value from page 3
+#if TEST_MODE
+                // TEST MODE: Simulate bit 0 (U21 chip) failure
+                eor #$01                        // Flip bit 0 to simulate failure
+#endif
+                cmp #$aa                        // Compare with expected
+                bne !fail+                      // If mismatch, identify chip
                 inx
                 bne verifyAALoop
                 jmp !next+
         !fail:
-                jmp testFailed
+                jmp testFailed_AA
         !next:
 
                 //=====================================================
@@ -98,18 +118,19 @@ lowRamTest: {
                 ShortDelayLoop($3f)
 
                 // Verify $55 pattern
-                lda #$55
                 ldx #$00
         verify55Loop:
-                cmp $0200,x
-                bne !fail+
-                cmp $0300,x
-                bne !fail+
+                lda $0200,x                     // Read actual value
+                cmp #$55                        // Compare with expected
+                bne !fail+                      // If mismatch, identify chip
+                lda $0300,x                     // Read actual value from page 3
+                cmp #$55                        // Compare with expected
+                bne !fail+                      // If mismatch, identify chip
                 inx
                 bne verify55Loop
                 jmp !next+
         !fail:
-                jmp testFailed
+                jmp testFailed_55
         !next:
 
                 //=====================================================
@@ -168,10 +189,10 @@ lowRamTest: {
 
                 // Verify PRN sequence byte-by-byte
         verifyPRNLoop:
-                lda PrnTestPattern,x            // Get expected pattern byte
                 ldy #$00
-                cmp (ZP.tmpDestAddressLow),y    // Compare with memory
-                bne !fail+                      // Mismatch = failure
+                lda (ZP.tmpDestAddressLow),y    // Read actual value from memory
+                cmp PrnTestPattern,x            // Compare with expected pattern
+                bne testFailed_PRN              // Mismatch = failure
 
                 // Advance PRN pattern index (wraps at 247)
                 inx
@@ -193,9 +214,6 @@ lowRamTest: {
                 bne verifyPRNLoop               // Continue if not at $0400
                 jmp allTestsPassed
 
-        !fail:
-                jmp testFailed
-
         allTestsPassed:
                 // All patterns passed!
                 // Display "OK" at screen positions $00AD-$00AE (row 4, +13 offset)
@@ -205,8 +223,32 @@ lowRamTest: {
                 sta VIDEO_RAM+$ae
                 rts
 
-        testFailed:
-                // TEST FAILED - Memory corruption or address bus issue detected
+        //=====================================================
+        // FAILURE HANDLERS - Identify failing chip(s)
+        //=====================================================
+
+        testFailed_AA:
+                // $AA pattern test failed
+                // A register contains actual value read from memory
+                eor #$aa                        // XOR with expected to find bad bits
+                tax                             // Move to X for UFailed
+                jmp showFailure
+
+        testFailed_55:
+                // $55 pattern test failed
+                // A register contains actual value read from memory
+                eor #$55                        // XOR with expected to find bad bits
+                tax                             // Move to X for UFailed
+                jmp showFailure
+
+        testFailed_PRN:
+                // PRN sequence test failed
+                // A register contains actual value, X has pattern index
+                eor PrnTestPattern,x            // XOR with expected to find bad bits
+                tax                             // Move to X for UFailed
+                // Fall through to showFailure
+
+        showFailure:
                 // Display "BAD" error message at screen positions $00AD-$00AF
                 lda #$02                        // Screen code for "B"
                 sta VIDEO_RAM+$ad
@@ -215,7 +257,7 @@ lowRamTest: {
                 lda #$04                        // Screen code for "D"
                 sta VIDEO_RAM+$af
 
-                // Could add failing address display here if desired
-                // The pointer values indicate where failure occurred
-                rts
+                // Call UFailed to show which chip(s) failed on the diagram
+                // X register contains XOR result showing bad bits
+                jsr UFailed
 }
