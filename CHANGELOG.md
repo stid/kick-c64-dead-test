@@ -7,7 +7,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [1.3.0] - 2025
+
 ### Added
+- **Low RAM Test** - New test module for previously untested $0200-$03FF region
+  - Tests 512 bytes between stack page and screen RAM
+  - Uses three-phase testing approach:
+    1. $AA pattern (10101010) - detects even-bit stuck failures
+    2. $55 pattern (01010101) - detects odd-bit stuck failures
+    3. 247-byte PRN sequence - detects address bus problems and page confusion
+  - Prime-like pattern length ensures detection of mirrored/crossed address lines
+  - Completes comprehensive RAM coverage of all Ultimax-accessible memory
 - Comprehensive open-source documentation structure
 - Simplified NOTICE.md with copyright and attribution information
 - CONTRIBUTING.md with contributor guidelines
