@@ -3,7 +3,6 @@
 [![Build Status](https://github.com/stid/kick-c64-dead-test/workflows/Build%20Dead%20Test/badge.svg)](https://github.com/stid/kick-c64-dead-test/actions)
 [![Version](https://img.shields.io/badge/version-1.2.0-blue)](https://github.com/stid/kick-c64-dead-test/releases)
 [![Platform](https://img.shields.io/badge/platform-C64%20%7C%20C128-orange)]()
-[![License](https://img.shields.io/badge/license-See%20NOTICE-yellow)](NOTICE.md)
 
 > **Quick Start**: Download the [latest release](https://github.com/stid/kick-c64-dead-test/releases) and burn `dead-test.bin` to an EPROM, or run `dead-test.crt` in VICE.
 
@@ -140,27 +139,20 @@ You can definitely try to build your [own](http://blog.worldofjani.com/?p=879).
 
 - [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) - Detailed test algorithms and hardware information
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributors
-- [NOTICE.md](NOTICE.md) - Copyright and attribution information
 - [CHANGELOG.md](CHANGELOG.md) - Version history and changes
+- [NOTICE.md](NOTICE.md) - Copyright and attribution information
 
 ## Contributing
 
 We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
 - Reporting issues
-- Submitting pull requests  
+- Submitting pull requests
 - Coding standards
 - Testing requirements
 
-## Legal Notice
+## Copyright & Attribution
 
-This project has complex copyright considerations. Please read [NOTICE.md](NOTICE.md) for full attribution and legal information. The original Dead Test is © 1988 Commodore Electronics Limited.
-
-## Acknowledgments
-
-- Original Dead Test rev. 781220 by Commodore
-- Disassembly by [worldofjani.com](https://blog.worldofjani.com/?p=164)
-- SID filter test methodology by Andrew Challis
-- The C64 community for preservation efforts
+Based on Commodore 64 Dead Test rev. 781220 (© 1988 Commodore). See [NOTICE.md](NOTICE.md) for full copyright information and permitted uses.
 
 ## Potential Bugs
 

@@ -4,7 +4,7 @@ Thank you for your interest in contributing to this Commodore 64 diagnostic tool
 
 ## Before Contributing
 
-Please read the [NOTICE.md](NOTICE.md) file to understand the copyright situation and attribution requirements for this project.
+Please read [NOTICE.md](NOTICE.md) to understand the copyright status and permitted uses of this project.
 
 ## How to Contribute
 
@@ -39,13 +39,7 @@ Please read the [NOTICE.md](NOTICE.md) file to understand the copyright situatio
 ### 6502 Assembly Style
 
 ```asm
-//=============================================================================
-// FILE HEADER - Always include attribution
-// Based on: Original Dead Test rev. 781220 (© 1988 Commodore)
-//           Disassembly by worldofjani.com (2015)
-// Modifications: [Describe your changes]
-//=============================================================================
-
+// Brief file header explaining purpose
 labelName:      // Use camelCase for labels
                 // Indent with tabs (configure your editor to display as 8 spaces)
                 lda #$00        // Instructions at 16-char indent
@@ -54,7 +48,7 @@ labelName:      // Use camelCase for labels
         // Align operands for readability
         lda $0400,x
         sta $d800,x
-        
+
         // Document complex operations
 !loop:  dey             // Countdown loop
         bne !loop-      // 5 cycles per iteration
@@ -161,12 +155,9 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
 - **MINOR**: New tests or significant enhancements
 - **PATCH**: Bug fixes and minor improvements
 
-## License and Attribution
+## Copyright
 
-- Acknowledge the original Dead Test in any new files
-- Credit worldofjani.com disassembly where applicable
-- Your contributions are considered enhancements to the educational disassembly
-- See [NOTICE.md](NOTICE.md) for full attribution requirements
+This project is based on copyrighted work (Commodore 64 Dead Test © 1988). Your contributions are enhancements for educational and preservation purposes. See [NOTICE.md](NOTICE.md) for details.
 
 ## Questions?
 

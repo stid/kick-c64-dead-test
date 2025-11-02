@@ -1,15 +1,10 @@
 #importonce
 //=============================================================================
 // COMMODORE 64 DEAD TEST DIAGNOSTIC - MAIN ENTRY POINT
-// Based on original dead test rev. 781220
-// Original disassembly by worldofjani.com
-// KickAssembler port and enhancements by =stid=
 //
 // Purpose: Comprehensive hardware diagnostic that runs from cartridge ROM
 //          Tests all critical C64 components in order of dependency
 //          Provides visual/audio feedback even with severely damaged hardware
-//
-// Version: 1.2.0 - Added filter test, color bars, improved visual feedback
 //=============================================================================
 
 #import "./zeropage_map.asm"

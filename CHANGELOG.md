@@ -9,7 +9,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ### Added
 - Comprehensive open-source documentation structure
-- NOTICE.md with copyright and attribution information
+- Simplified NOTICE.md with copyright and attribution information
 - CONTRIBUTING.md with contributor guidelines
 - GitHub Actions workflow for automated builds
 - Issue and pull request templates
@@ -87,18 +87,8 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - No stack operations before stack test
 - Pattern-based memory testing with 20-byte pattern
 
-## Attribution
-
-### Original Work
-- Commodore 64 Dead Test rev. 781220 - © 1988 Commodore Electronics Limited
-
-### Disassembly
-- worldofjani.com (2015) - Original disassembly for studying purposes
-
-### This Implementation
-- stid - KickAssembler port and enhancements
-- Community contributors - See GitHub contributors page
-
 ---
 
-For detailed technical information about changes, see [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md)
+For detailed technical information and attribution, see:
+- [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md)
+- [NOTICE.md](NOTICE.md)
