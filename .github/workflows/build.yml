@@ -1,0 +1,149 @@
+name: Build Dead Test
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+    
+    - name: Cache KickAssembler
+      id: cache-kickass
+      uses: actions/cache@v3
+      with:
+        path: /tmp/KickAssembler
+        key: kickass-5.25
+    
+    - name: Download KickAssembler
+      if: steps.cache-kickass.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p /tmp/KickAssembler
+        cd /tmp/KickAssembler
+        wget -q http://theweb.dk/KickAssembler/KickAss.zip
+        unzip -q KickAss.zip
+        rm KickAss.zip
+    
+    - name: Install VICE tools
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y vice
+    
+    - name: Build Dead Test
+      run: |
+        export KICKASS_BIN=/tmp/KickAssembler/KickAss.jar
+        make clean
+        make
+    
+    - name: Verify build artifacts
+      run: |
+        test -f bin/main.prg || (echo "main.prg not found" && exit 1)
+        test -f bin/dead-test.crt || (echo "dead-test.crt not found" && exit 1)
+        test -f bin/dead-test.bin || (echo "dead-test.bin not found" && exit 1)
+        echo "Build artifacts verified:"
+        ls -la bin/
+    
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: dead-test-binaries
+        path: |
+          bin/main.prg
+          bin/dead-test.crt
+          bin/dead-test.bin
+        retention-days: 30
+    
+    - name: Upload build log
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-log
+        path: bin/buildlog.txt
+        retention-days: 7
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dead-test-binaries
+        path: bin/
+    
+    - name: Install VICE
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y vice xvfb
+    
+    - name: Verify cartridge format
+      run: |
+        # Use cartconv to verify the cartridge format
+        cartconv -format | grep -q "ulti" || (echo "Ultimax format not supported" && exit 1)
+        cartconv -i bin/dead-test.crt -info || (echo "Invalid cartridge format" && exit 1)
+    
+    - name: Test in VICE (headless)
+      run: |
+        # Run VICE in headless mode for a short time to verify it loads
+        timeout 10s xvfb-run -a x64sc -default -cartcrt bin/dead-test.crt -warp -exitscreenshot bin/test-screenshot.png || true
+        
+        # Check if screenshot was created (indicates successful load)
+        if [ -f bin/test-screenshot.png ]; then
+          echo "Dead Test loaded successfully in VICE"
+        else
+          echo "Warning: Could not verify Dead Test loading"
+        fi
+    
+    - name: Upload test screenshot
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-screenshot
+        path: bin/test-screenshot.png
+        retention-days: 7
+
+  release:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: dead-test-binaries
+        path: bin/
+    
+    - name: Create release package
+      run: |
+        zip dead-test-${{ github.ref_name }}.zip bin/*
+        tar -czf dead-test-${{ github.ref_name }}.tar.gz bin/*
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dead-test-${{ github.ref_name }}.zip
+          dead-test-${{ github.ref_name }}.tar.gz
+          bin/dead-test.crt
+          bin/dead-test.bin
+        draft: false
+        prerelease: false
+        generate_release_notes: true

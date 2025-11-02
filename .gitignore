@@ -1,9 +1,38 @@
+# IDE and editor files
 .vscode/*
+.idea/
+*.swp
+*.swo
+*~
+
+# Build outputs
 bin/
-.DS_Store
+releases/
+*.prg
+*.crt
+*.bin
 *.o
 *.sym
 *.lst
-*.prg
 *.log
 buildlog.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# VICE files
+*.vsf
+*.d64
+*.t64
+
+# Temporary files
+tmp/
+temp/
+*.tmp

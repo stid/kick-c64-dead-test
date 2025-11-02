@@ -70,11 +70,15 @@ lowRamTest: {
                 ldx #$00
         verifyAALoop:
                 cmp $0200,x
-                bne testFailed
+                bne !fail+
                 cmp $0300,x
-                bne testFailed
+                bne !fail+
                 inx
                 bne verifyAALoop
+                jmp !next+
+        !fail:
+                jmp testFailed
+        !next:
 
                 //=====================================================
                 // TEST PHASE 2: $55 Pattern (01010101)
@@ -98,11 +102,15 @@ lowRamTest: {
                 ldx #$00
         verify55Loop:
                 cmp $0200,x
-                bne testFailed
+                bne !fail+
                 cmp $0300,x
-                bne testFailed
+                bne !fail+
                 inx
                 bne verify55Loop
+                jmp !next+
+        !fail:
+                jmp testFailed
+        !next:
 
                 //=====================================================
                 // TEST PHASE 3: PRN Sequence (247-byte pattern)
@@ -159,10 +167,14 @@ lowRamTest: {
         verifyPRNPage:
                 lda PrnTestPattern,y
                 cmp (ZP.tmpDestAddressLow),y
-                bne testFailed                  // Mismatch = failure
+                bne !fail+                      // Mismatch = failure
                 iny
                 cpy #247                        // PRN pattern length
                 bne verifyPRNPage
+                jmp !next+
+        !fail:
+                jmp testFailed
+        !next:
 
                 // Move to next PRN cycle
                 clc
