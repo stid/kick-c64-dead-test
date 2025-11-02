@@ -1,9 +1,37 @@
 # Commodore 64 Dead Test - Kick Assembler Port
 
-This is a Kick Assembler adapted and slightly personalized version of the **COMMODORE 64 Dead Test rev. 781220**.
-It's based on the original disassembly by worldofjani.com. The pre-existing test logic is in fact untouched.
+[![Build Status](https://github.com/stid/kick-c64-dead-test/workflows/Build%20Dead%20Test/badge.svg)](https://github.com/stid/kick-c64-dead-test/actions)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue)](https://github.com/stid/kick-c64-dead-test/releases)
+[![Platform](https://img.shields.io/badge/platform-C64%20%7C%20C128-orange)]()
+[![License](https://img.shields.io/badge/license-See%20NOTICE-yellow)](NOTICE.md)
+
+> **Quick Start**: Download the [latest release](https://github.com/stid/kick-c64-dead-test/releases) and burn `dead-test.bin` to an EPROM, or run `dead-test.crt` in VICE.
+
+A comprehensive hardware diagnostic tool for the Commodore 64, designed to test all critical components even when the system is severely damaged. This is an enhanced KickAssembler port of the **COMMODORE 64 Dead Test rev. 781220**, based on the disassembly by [worldofjani.com](https://blog.worldofjani.com/?p=164).
 
 ![Running Dead Test](/images/IMG_20200329_152641.png)
+
+## Why This Version?
+
+- ✅ **Enhanced visual feedback** - Color reference bar and border cycling
+- ✅ **SID filter test** - Detects analog filter failures missed by other tests  
+- ✅ **Modern codebase** - Modular structure with extensive documentation
+- ✅ **Preserved compatibility** - Original test logic remains untouched
+- ✅ **Open development** - Clear attribution and contribution guidelines
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/stid/kick-c64-dead-test.git
+cd kick-c64-dead-test
+
+# Build the diagnostic
+make
+
+# Run in VICE emulator
+make run
+```
 
 ## Prerequisites
 
@@ -107,6 +135,32 @@ You can also buy a pre-assembled Dead Test **"DEAD TEST DIAGNOSTIC cartridge 781
 You can definitely try to build your [own](http://blog.worldofjani.com/?p=879).
 
 **WARNING:** While this program will probably never harm your C64/128, a poorly assembled cartridge potentially could. Keep this in mind if you build your own. If you're not comfortable with soldering, boards, and jumpers, I strongly recommend buying a pre-assembled Dead Test Cartridge on eBay or from one of the many retro stores (ensure it's rev. 781220) and simply swap the existing EPROM with your custom version.
+
+## Documentation
+
+- [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) - Detailed test algorithms and hardware information
+- [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributors
+- [NOTICE.md](NOTICE.md) - Copyright and attribution information
+- [CHANGELOG.md](CHANGELOG.md) - Version history and changes
+
+## Contributing
+
+We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on:
+- Reporting issues
+- Submitting pull requests  
+- Coding standards
+- Testing requirements
+
+## Legal Notice
+
+This project has complex copyright considerations. Please read [NOTICE.md](NOTICE.md) for full attribution and legal information. The original Dead Test is © 1988 Commodore Electronics Limited.
+
+## Acknowledgments
+
+- Original Dead Test rev. 781220 by Commodore
+- Disassembly by [worldofjani.com](https://blog.worldofjani.com/?p=164)
+- SID filter test methodology by Andrew Challis
+- The C64 community for preservation efforts
 
 ## Potential Bugs
 

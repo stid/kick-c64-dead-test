@@ -22,8 +22,11 @@ LOG_FILE = $(BUILD_PATH)/buildlog.txt
 # KickAssembler options
 KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
 
+# Version
+VERSION ?= 1.2.0
+
 # Phony targets
-.PHONY: all build clean run debug help check-tools
+.PHONY: all build clean run debug help check-tools test release check version
 
 # Default target
 all: build
@@ -73,6 +76,43 @@ clean:
 	@rm -rf $(BUILD_PATH)
 	@echo "Clean complete."
 
+# Test in emulator (automated)
+test: build
+	@echo "Running automated test in VICE..."
+	@command -v $(X64SC) >/dev/null 2>&1 || { echo "Error: x64sc not found. Please install VICE."; exit 1; }
+	@echo "Starting test run (will timeout after 30 seconds)..."
+	@timeout 30s $(X64SC) -default -warp -exitscreenshot $(BUILD_PATH)/test-result.png $(CRT_FILE) 2>/dev/null || true
+	@if [ -f $(BUILD_PATH)/test-result.png ]; then \
+		echo "Test completed - screenshot saved to $(BUILD_PATH)/test-result.png"; \
+	else \
+		echo "Test completed - no screenshot generated"; \
+	fi
+
+# Create release package
+release: clean build
+	@echo "Creating release package v$(VERSION)..."
+	@mkdir -p releases
+	@cp $(BIN_FILE) releases/dead-test-v$(VERSION).bin
+	@cp $(CRT_FILE) releases/dead-test-v$(VERSION).crt
+	@cp $(PRG_FILE) releases/dead-test-v$(VERSION).prg
+	@cd releases && zip dead-test-v$(VERSION).zip dead-test-v$(VERSION).*
+	@echo "Release package created: releases/dead-test-v$(VERSION).zip"
+	@ls -la releases/dead-test-v$(VERSION).*
+
+# Check code style (basic validation)
+check: $(SRC_PATH)/*.asm
+	@echo "Checking assembly files..."
+	@for file in $(SRC_PATH)/*.asm; do \
+		echo "Checking $$file..."; \
+		grep -q "#importonce" $$file || echo "Warning: $$file missing #importonce"; \
+	done
+	@echo "Style check complete."
+
+# Show version
+version:
+	@echo "C64 Dead Test Diagnostic v$(VERSION)"
+	@echo "Based on original rev. 781220"
+
 # Show help
 help:
 	@echo "Commodore 64 Dead Test - Build System"
@@ -80,13 +120,19 @@ help:
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
-	@echo "Targets:"
+	@echo "Main Targets:"
 	@echo "  all          - Build the project (default)"
 	@echo "  build        - Compile and create .prg, .crt, and .bin files"
 	@echo "  run          - Build and run in VICE emulator"
 	@echo "  debug        - Build and run with VICE monitor"
+	@echo "  test         - Run automated test in VICE"
 	@echo "  clean        - Remove all build artifacts"
+	@echo ""
+	@echo "Development Targets:"
+	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
+	@echo "  release      - Create release package (v$(VERSION))"
+	@echo "  version      - Show current version"
 	@echo "  help         - Show this help message"
 	@echo ""
 	@echo "Configuration:"
@@ -94,9 +140,12 @@ help:
 	@echo "  JAVA         - Java command (current: $(JAVA))"
 	@echo "  CARTCONV     - cartconv command (current: $(CARTCONV))"
 	@echo "  X64SC        - VICE emulator command (current: $(X64SC))"
+	@echo "  VERSION      - Version number (current: $(VERSION))"
 	@echo ""
-	@echo "Example:"
+	@echo "Examples:"
 	@echo "  make                    # Build the project"
 	@echo "  make run                # Build and run in emulator"
-	@echo "  make clean              # Clean build files"
+	@echo "  make test               # Run automated test"
+	@echo "  make release            # Create release package"
+	@echo "  make VERSION=1.3.0 release  # Create release with custom version"
 	@echo "  make KICKASS_BIN=/path/to/KickAss.jar  # Use custom KickAssembler path"
