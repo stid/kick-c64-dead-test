@@ -36,10 +36,10 @@
 //=============================================================================
 ramTest: {
                 // Display "RAM TEST" label on screen
-                // This appears at position $04F0 in video RAM
+                // This appears at position $0118 in video RAM (row 7)
                 ldx #$07
         !:      lda strRam,x      // ram test label
-                sta VIDEO_RAM+$f0,x
+                sta VIDEO_RAM+$118,x
                 dex
                 bpl !-
 
@@ -94,34 +94,34 @@ ramTest: {
                 bne RamTestLoop         // Continue if not at $1000 yet
                 
                 // TEST PASSED - All addresses $0800-$0FFF verified successfully
-                // Display "OK" at screen positions $04FD and $04FE
+                // Display "OK" at screen positions $0125-$0126 (row 7, +13 offset)
                 lda #$0f         // Screen code for "O"
-                sta VIDEO_RAM+$fd
+                sta VIDEO_RAM+$125
                 lda #$0b         // Screen code for "K"
-                sta VIDEO_RAM+$fe
+                sta VIDEO_RAM+$126
                 rts
 
         RamTestFailed:
                 // TEST FAILED - Memory corruption detected
                 // The accumulator contains the corrupted value read from memory
                 // By XORing with the expected pattern, we identify failed bits
-                
+
                 // XOR actual value with expected pattern to get difference bits
                 // Result: Each '1' bit indicates a bit that failed
                 // This helps identify which RAM chip has issues
                 eor MemTestPattern,x
                 tax                     // Save bit difference pattern for potential debugging
-                
-                // Display "BAD" error message at screen positions $04FD-$04FF
+
+                // Display "BAD" error message at screen positions $0125-$0127
                 // Unlike memBankTest which flashes to indicate chip number,
                 // this test simply reports failure since we test byte-by-byte
                 // The exact failing address is known from the pointer values
                 lda #$02         // Screen code for "B"
-                sta VIDEO_RAM+$fd
+                sta VIDEO_RAM+$125
                 lda #$01         // Screen code for "A"
-                sta VIDEO_RAM+$fe
+                sta VIDEO_RAM+$126
                 lda #$04         // Screen code for "D"
-                sta VIDEO_RAM+$ff
+                sta VIDEO_RAM+$127
                 
                 // Note: Test continues rather than halting
                 // This allows checking if failure is isolated or widespread

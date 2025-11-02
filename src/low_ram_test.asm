@@ -41,10 +41,10 @@
 //=============================================================================
 lowRamTest: {
                 // Display "LOW RAM" label on screen
-                // This appears at position $0078 in video RAM (row 3)
+                // This appears at position $00A0 in video RAM (row 4)
                 ldx #$06
         !:      lda strLowRam,x
-                sta VIDEO_RAM+$78,x
+                sta VIDEO_RAM+$a0,x
                 dex
                 bpl !-
 
@@ -198,22 +198,22 @@ lowRamTest: {
 
         allTestsPassed:
                 // All patterns passed!
-                // Display "OK" at screen positions $007F and $0080
+                // Display "OK" at screen positions $00AD-$00AE (row 4, +13 offset)
                 lda #$0f                        // Screen code for "O"
-                sta VIDEO_RAM+$7f
+                sta VIDEO_RAM+$ad
                 lda #$0b                        // Screen code for "K"
-                sta VIDEO_RAM+$80
+                sta VIDEO_RAM+$ae
                 rts
 
         testFailed:
                 // TEST FAILED - Memory corruption or address bus issue detected
-                // Display "BAD" error message at screen positions $007F-$0081
+                // Display "BAD" error message at screen positions $00AD-$00AF
                 lda #$02                        // Screen code for "B"
-                sta VIDEO_RAM+$7f
+                sta VIDEO_RAM+$ad
                 lda #$01                        // Screen code for "A"
-                sta VIDEO_RAM+$80
+                sta VIDEO_RAM+$ae
                 lda #$04                        // Screen code for "D"
-                sta VIDEO_RAM+$81
+                sta VIDEO_RAM+$af
 
                 // Could add failing address display here if desired
                 // The pointer values indicate where failure occurred

@@ -24,8 +24,8 @@
 screenRamTest: {
                 // Display "screen ram" label
                 ldx #$09
-        !:      lda strScreen,x      
-                sta VIDEO_RAM+$a0,x     // Row 4, column 0
+        !:      lda strScreen,x
+                sta VIDEO_RAM+$c8,x     // Row 5, column 0
                 dex
                 bpl !-
 
@@ -73,23 +73,23 @@ screenRamTest: {
                 bne screenRamTestLoop           // Continue if more to test
                 // Screen RAM test passed
                 lda #$0f                        // 'O'
-                sta VIDEO_RAM+$ad
+                sta VIDEO_RAM+$d5
                 lda #$0b                        // 'K'
-                sta VIDEO_RAM+$ae
+                sta VIDEO_RAM+$d6
                 rts                             // Return to main loop
 
         screenRamTestFailed:
                 // Screen RAM failed - identify which data bit/chip
                 eor MemTestPattern,x            // Find differing bits
                 tax                             // Save for chip identification
-                
+
                 // Display "BAD"
                 lda #$02                        // 'B'
-                sta VIDEO_RAM+$ad
+                sta VIDEO_RAM+$d5
                 lda #$01                        // 'A'
-                sta VIDEO_RAM+$ae
+                sta VIDEO_RAM+$d6
                 lda #$04                        // 'D'
-                sta VIDEO_RAM+$af
+                sta VIDEO_RAM+$d7
                 
                 // Identify failed chip and halt
                 jsr UFailed
