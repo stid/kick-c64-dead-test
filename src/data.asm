@@ -92,7 +92,7 @@ PrnTestPattern:
                 .byte $db,$14,$dd,$36,$1f,$98,$a1
 
 .encoding       "screencode_mixed"
-strAbout:       .text "c-64 dead test rev stid 1.2.0"
+strAbout:       .text "c-64 dead test rev stid 1.3.0"
 strCount:       .text "count"
 strZero:        .text "zero page"
 strStack:       .text "stack page"
