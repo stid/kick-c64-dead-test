@@ -38,23 +38,34 @@ Early tests (memory bank, zero page, stack) cannot use:
 
 **Purpose**: Verify basic RAM functionality before any visual output
 
-**Test Pattern** (20 bytes):
+**Test Methodology**: AA/55/PRN + walking bits patterns (suggested by Sven Petersen)
 
-```text
-$00 - All bits off
-$55 - Alternating bits (01010101)
-$AA - Alternating bits (10101010)
-$FF - All bits on
-$01,$02,$04,$08,$10,$20,$40,$80 - Walking ones
-$FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
-```
+**Test Patterns** (4 phases, 19 patterns total):
+
+1. **Phase 1 - $AA pattern (10101010)**: Detects stuck-low bits on odd positions
+2. **Phase 2 - $55 pattern (01010101)**: Detects stuck-high bits on even positions
+3. **Phase 3 - 247-byte PRN sequence**: Detects address bus problems and page confusion
+   - Prime-like length ensures non-alignment with 256-byte pages
+   - Catches mirrored or crossed address lines that aligned patterns miss
+4. **Phase 4 - Walking bits** (16 patterns):
+   - Walking ones: $01,$02,$04,$08,$10,$20,$40,$80
+   - Walking zeros: $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F
+   - Enables specific chip identification
 
 **Algorithm**:
 
-1. Write pattern byte to all memory pages ($0100-$0FFF) simultaneously
-2. Delay to ensure memory settling
-3. Verify each page matches expected pattern
-4. Test each pattern byte across all memory before moving to next
+1. Write AA pattern to all memory pages ($0100-$0FFF) simultaneously, delay, verify
+2. Write 55 pattern to all memory pages simultaneously, delay, verify
+3. Write repeating 247-byte PRN sequence across all memory pages, delay, verify
+4. For each walking bit pattern: write to all pages, delay, verify
+5. Each phase tests all 3840 bytes before moving to next phase
+
+**Why This Approach**:
+
+- **AA/55 patterns**: Fast detection of stuck bits without complex calculations
+- **247-byte PRN**: Detects address bus faults (crossed lines, mirroring, page confusion)
+- **Walking bits**: Precise chip identification for failures
+- **Combined approach**: Maximum test coverage with both fault detection and chip ID
 
 **Failure Detection**:
 
@@ -78,11 +89,17 @@ $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
 - Indirect addressing pointers
 - Fast 2-cycle instructions
 
+**Test Methodology**: AA/55/PRN + walking bits patterns (same as Memory Bank Test)
+
+**Test Range**: $12-$FF (238 bytes, preserves $00-$11 for test variables)
+
 **Method**:
 
-- Tests from $12 onwards (preserves test's own variables)
-- Same 20-byte pattern as memory test
-- Still cannot use stack operations
+- Phase 1: Write/verify $AA pattern across $12-$FF
+- Phase 2: Write/verify $55 pattern across $12-$FF
+- Phase 3: Write/verify 247-byte PRN sequence across $12-$FF
+- Phase 4: Write/verify 16 walking bit patterns across $12-$FF
+- Still cannot use stack operations (JMP only)
 
 ### 3. Stack Page Test ($0100-$01FF)
 
@@ -91,6 +108,18 @@ $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
 - Subroutine calls (JSR/RTS)
 - Interrupt handling
 - Temporary storage (PHA/PLA)
+
+**Test Methodology**: AA/55/PRN + walking bits patterns (same as Memory Bank Test)
+
+**Test Range**: $0100-$01FF (full 256 bytes)
+
+**Method**:
+
+- Phase 1: Write/verify $AA pattern across stack page
+- Phase 2: Write/verify $55 pattern across stack page
+- Phase 3: Write/verify 247-byte PRN sequence across stack page
+- Phase 4: Write/verify 16 walking bit patterns across stack page
+- LAST test to avoid JSR/RTS (still uses JMP only)
 
 **Significance**: After this test passes, the code can use JSR/RTS and full 6502 functionality
 
@@ -143,6 +172,29 @@ $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F - Walking zeros
 ### 7. General RAM Test ($0800-$0FFF)
 
 **Purpose**: Thorough byte-by-byte test of remaining lower RAM
+
+**Test Methodology**: Byte-by-byte AA/55/PRN + walking bits testing
+
+**Key Difference**: Different methodology from Memory Bank Test for maximum coverage
+
+**Method (for each address from $0800-$0FFF)**:
+
+1. Write $AA pattern, delay, verify
+2. Write $55 pattern, delay, verify
+3. Write corresponding PRN byte (based on offset from $0800, mod 247), delay, verify
+4. Write each of 16 walking bit patterns, delay, verify
+5. Move to next address only after all 19 patterns pass
+
+**Why Byte-by-Byte Approach**:
+
+- **Complementary to page-based testing**: Memory Bank Test uses page-by-page, this uses byte-by-byte
+- **Catches different failures**: Immediate write-delay-verify detects timing-sensitive issues
+- **Granular detection**: Can pinpoint exact failing address, not just chip
+- **Aggressive timing**: Uses shorter delays to catch marginal RAM cells
+
+**Combined Coverage**: The $0800-$0FFF region is tested twice with different methodologies:
+1. Memory Bank Test: Page-by-page with all patterns
+2. General RAM Test: Byte-by-byte with all patterns
 
 ### 8. Font Test
 
