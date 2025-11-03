@@ -1,7 +1,7 @@
 # Commodore 64 Dead Test - Kick Assembler Port
 
 [![Build Status](https://github.com/stid/kick-c64-dead-test/workflows/Build%20Dead%20Test/badge.svg)](https://github.com/stid/kick-c64-dead-test/actions)
-[![Version](https://img.shields.io/badge/version-1.3.0-blue)](https://github.com/stid/kick-c64-dead-test/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/stid/kick-c64-dead-test/releases)
 [![Platform](https://img.shields.io/badge/platform-C64%20%7C%20C128-orange)]()
 
 > **Quick Start**: Download the [latest release](https://github.com/stid/kick-c64-dead-test/releases) and burn `dead-test.bin` to an EPROM, or run `dead-test.crt` in VICE.

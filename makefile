@@ -23,7 +23,7 @@ LOG_FILE = $(BUILD_PATH)/buildlog.txt
 KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
 
 # Version
-VERSION ?= 1.3.0
+VERSION ?= 2.0.0
 
 # Phony targets
 .PHONY: all build clean run debug help check-tools test release check version test-mode
