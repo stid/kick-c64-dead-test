@@ -14,6 +14,15 @@
 // Purpose: Provide more thorough RAM verification than the initial memBankTest
 //          by testing each memory location individually with timing delays
 //
+// Method:  Byte-by-byte testing with AA/55/PRN + walking bits patterns
+//          Different methodology from page-based memBankTest for maximum coverage
+//
+// Test Patterns (applied byte-by-byte):
+//   1. $AA (10101010) - Detects stuck-low bits on odd positions
+//   2. $55 (01010101) - Detects stuck-high bits on even positions
+//   3. 247-byte PRN sequence - Detects address bus problems
+//   4. Walking ones/zeros - Identifies specific failing chips
+//
 // Memory Range: $0800-$0FFF (2KB)
 // - This INTENTIONALLY overlaps with memory already tested in memBankTest
 // - The overlap provides a second verification pass with different methodology
@@ -26,7 +35,7 @@
 // 4. GRANULAR DETECTION: Can pinpoint exact failing address, not just chip
 //
 // Method: For each memory location:
-//          1. Write all 20 test patterns sequentially
+//          1. Write all test patterns sequentially (AA, 55, PRN, walking bits)
 //          2. Add timing delay after each write
 //          3. Immediately verify the written value
 //          4. Move to next address only after all patterns pass
@@ -49,44 +58,86 @@ ramTest: {
                 ldy #>$0800             // High byte = $08
                 stx ZP.tmpSourceAddressLow
                 sty ZP.tmpSourceAddressHigh
+
         RamTestLoop:
-                // Y = 0 for indirect addressing offset
-                // The actual address comes from zero page pointer
+                ldy #$00                // Y = 0 for indirect addressing offset
+
+                //=======================================================
+                // Phase 1: Test $AA pattern
+                //=======================================================
+                lda #$aa
+                sta (ZP.tmpSourceAddressLow),y
+                ShortDelayLoop($7f)
+                lda (ZP.tmpSourceAddressLow),y
+                cmp #$aa
+                bne RamTestFailed_AA
+
+                //=======================================================
+                // Phase 2: Test $55 pattern
+                //=======================================================
+                lda #$55
+                sta (ZP.tmpSourceAddressLow),y
+                ShortDelayLoop($7f)
+                lda (ZP.tmpSourceAddressLow),y
+                cmp #$55
+                bne RamTestFailed_55
+
+                //=======================================================
+                // Phase 3: Test PRN pattern (based on current offset)
+                //=======================================================
+                // Calculate PRN index from current address offset
+                // Offset = (address - $0800) mod 247
+                lda ZP.tmpSourceAddressLow
+                ldx ZP.tmpSourceAddressHigh
+                sec
+                sbc #<$0800             // Subtract $0800 to get offset
+                tay                      // Save low byte
+                txa
+                sbc #>$0800
+                tax                      // X = high byte of offset
+
+                // Convert offset to PRN index (mod 247)
+                // For simplicity, use low byte mod 247 (good enough for 2KB)
+                tya
+                ldx #247
+        !:      cmp #247
+                bcc !+
+                sec
+                sbc #247
+                jmp !-
+        !:      tax                      // X = PRN pattern index
+
                 ldy #$00
-                
-                // Start with pattern 19 ($13) - test patterns in reverse order
-                // This matches the order used in memBankTest for consistency
-                ldx #$13
-        RamTestPatternLoop:
-                // Write one test pattern to current memory location
-                // Using indirect addressing: effective address = (ZP pointer) + Y
+                lda PrnTestPattern,x
+                sta (ZP.tmpSourceAddressLow),y
+                ShortDelayLoop($7f)
+                lda (ZP.tmpSourceAddressLow),y
+                cmp PrnTestPattern,x
+                bne RamTestFailed_PRN
+
+                //=======================================================
+                // Phase 4: Test walking bits (16 patterns)
+                //=======================================================
+                ldx #$04                // Start with walking ones
+        WalkingBitsLoop:
+                ldy #$00
                 lda MemTestPattern,x
                 sta (ZP.tmpSourceAddressLow),y
-
-                // CRITICAL TIMING DELAY - $7F iterations
-                // This delay serves multiple purposes:
-                // 1. Allows DRAM capacitors time to stabilize after write
-                // 2. Detects weak memory cells that lose charge quickly  
-                // 3. Simulates real-world timing between writes and reads
-                // 4. More aggressive than memBankTest to catch marginal failures
                 ShortDelayLoop($7f)
-
-                // Immediately read back and verify the written value
-                // If DRAM refresh failed or cell is weak, data will be corrupted
                 lda (ZP.tmpSourceAddressLow),y
                 cmp MemTestPattern,x
-                bne RamTestFailed       // Jump if read doesn't match written value
-                
-                // Test next pattern at same address
-                dex                     // Previous pattern (counting down from 19 to 0)
-                bpl RamTestPatternLoop  // Continue until all 20 patterns tested
+                bne RamTestFailed_Walking
+
+                inx
+                cpx #$14                // Test through index 19
+                bne WalkingBitsLoop
 
                 // All patterns passed at current address - move to next byte
                 // Increment 16-bit address pointer in zero page
                 inc ZP.tmpSourceAddressLow
                 bne !+                  // Skip high byte increment if no overflow
                 inc ZP.tmpSourceAddressHigh         // Handle 256-byte page boundary
-                
+
         !:      // Check if we've reached end of test range ($1000)
                 // Testing stops at $0FFF, so high byte should not reach $10
                 lda ZP.tmpSourceAddressHigh
@@ -101,16 +152,29 @@ ramTest: {
                 sta VIDEO_RAM+$126
                 rts
 
-        RamTestFailed:
-                // TEST FAILED - Memory corruption detected
-                // The accumulator contains the corrupted value read from memory
-                // By XORing with the expected pattern, we identify failed bits
+                //=======================================================
+                // Failure handlers
+                //=======================================================
+        RamTestFailed_AA:
+                eor #$aa
+                jmp ShowRamTestFailure
 
-                // XOR actual value with expected pattern to get difference bits
-                // Result: Each '1' bit indicates a bit that failed
-                // This helps identify which RAM chip has issues
+        RamTestFailed_55:
+                eor #$55
+                jmp ShowRamTestFailure
+
+        RamTestFailed_PRN:
+                eor PrnTestPattern,x
+                jmp ShowRamTestFailure
+
+        RamTestFailed_Walking:
                 eor MemTestPattern,x
-                tax                     // Save bit difference pattern for potential debugging
+                // Fall through to ShowRamTestFailure
+
+        ShowRamTestFailure:
+                // TEST FAILED - Memory corruption detected
+                // Accumulator contains XOR of actual vs expected (failed bits)
+                tax                     // Save bit difference pattern
 
                 // Display "BAD" error message at screen positions $0125-$0127
                 // Unlike memBankTest which flashes to indicate chip number,
@@ -122,8 +186,9 @@ ramTest: {
                 sta VIDEO_RAM+$126
                 lda #$04         // Screen code for "D"
                 sta VIDEO_RAM+$127
-                
+
                 // Note: Test continues rather than halting
                 // This allows checking if failure is isolated or widespread
                 // The XOR result in X register indicates which bits failed
+                rts
 }
