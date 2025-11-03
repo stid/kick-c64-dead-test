@@ -153,42 +153,54 @@ ramTest: {
                 rts
 
                 //=======================================================
-                // Failure handlers
+                // Failure handlers - Different messages for different failures
                 //=======================================================
         RamTestFailed_AA:
                 eor #$aa
-                jmp ShowRamTestFailure
+                tax
+                // Display "BIT" - stuck bit failure
+                lda #$02         // Screen code for "B"
+                sta VIDEO_RAM+$125
+                lda #$09         // Screen code for "I"
+                sta VIDEO_RAM+$126
+                lda #$14         // Screen code for "T"
+                sta VIDEO_RAM+$127
+                rts              // Return showing which bits failed
 
         RamTestFailed_55:
                 eor #$55
-                jmp ShowRamTestFailure
+                tax
+                // Display "BIT" - stuck bit failure
+                lda #$02         // Screen code for "B"
+                sta VIDEO_RAM+$125
+                lda #$09         // Screen code for "I"
+                sta VIDEO_RAM+$126
+                lda #$14         // Screen code for "T"
+                sta VIDEO_RAM+$127
+                rts              // Return showing which bits failed
 
         RamTestFailed_PRN:
-                eor PrnTestPattern,x
-                jmp ShowRamTestFailure
+                // Display "BUS" - address bus failure
+                lda #$02         // Screen code for "B"
+                sta VIDEO_RAM+$125
+                lda #$15         // Screen code for "U"
+                sta VIDEO_RAM+$126
+                lda #$13         // Screen code for "S"
+                sta VIDEO_RAM+$127
+                rts              // Return (address bus issue, not chip)
 
         RamTestFailed_Walking:
                 eor MemTestPattern,x
-                // Fall through to ShowRamTestFailure
-
-        ShowRamTestFailure:
-                // TEST FAILED - Memory corruption detected
-                // Accumulator contains XOR of actual vs expected (failed bits)
-                tax                     // Save bit difference pattern
-
-                // Display "BAD" error message at screen positions $0125-$0127
-                // Unlike memBankTest which flashes to indicate chip number,
-                // this test simply reports failure since we test byte-by-byte
-                // The exact failing address is known from the pointer values
+                tax
+                // Display "BAD" - specific chip failure
                 lda #$02         // Screen code for "B"
                 sta VIDEO_RAM+$125
                 lda #$01         // Screen code for "A"
                 sta VIDEO_RAM+$126
                 lda #$04         // Screen code for "D"
                 sta VIDEO_RAM+$127
-
                 // Note: Test continues rather than halting
                 // This allows checking if failure is isolated or widespread
-                // The XOR result in X register indicates which bits failed
+                // The XOR result in X register indicates which bits/chips failed
                 rts
 }

@@ -193,7 +193,7 @@ lowRamTest: {
                 ldy #$00
                 lda (ZP.tmpDestAddressLow),y    // Read actual value from memory
                 cmp PrnTestPattern,x            // Compare with expected pattern
-                bne testFailed_PRN              // Mismatch = failure
+                bne !fail+                      // Branch to nearby intermediate label
 
                 // Advance PRN pattern index (wraps at 247)
                 inx
@@ -215,6 +215,8 @@ lowRamTest: {
                 bne !+
                 jmp walkingBitsPhase
         !:      jmp verifyPRNLoop
+
+        !fail:  jmp testFailed_PRN              // Intermediate label for branch distance
 
                 //=====================================================
                 // TEST PHASE 4: Walking Bits (16 patterns)
@@ -264,43 +266,53 @@ lowRamTest: {
         //=====================================================
 
         testFailed_AA:
-                // $AA pattern test failed
-                // A register contains actual value read from memory
+                // $AA pattern test failed - stuck bit
                 eor #$aa                        // XOR with expected to find bad bits
                 tax                             // Move to X for UFailed
-                jmp showFailure
+                // Display "BIT" - stuck bit failure
+                lda #$02                        // Screen code for "B"
+                sta VIDEO_RAM+$ad
+                lda #$09                        // Screen code for "I"
+                sta VIDEO_RAM+$ae
+                lda #$14                        // Screen code for "T"
+                sta VIDEO_RAM+$af
+                jsr UFailed                     // Show which bits failed
 
         testFailed_55:
-                // $55 pattern test failed
-                // A register contains actual value read from memory
+                // $55 pattern test failed - stuck bit
                 eor #$55                        // XOR with expected to find bad bits
                 tax                             // Move to X for UFailed
-                jmp showFailure
+                // Display "BIT" - stuck bit failure
+                lda #$02                        // Screen code for "B"
+                sta VIDEO_RAM+$ad
+                lda #$09                        // Screen code for "I"
+                sta VIDEO_RAM+$ae
+                lda #$14                        // Screen code for "T"
+                sta VIDEO_RAM+$af
+                jsr UFailed                     // Show which bits failed
 
         testFailed_PRN:
-                // PRN sequence test failed
-                // A register contains actual value, X has pattern index
-                eor PrnTestPattern,x            // XOR with expected to find bad bits
-                tax                             // Move to X for UFailed
-                jmp showFailure
+                // PRN sequence test failed - address bus issue
+                // Display "BUS" - address bus failure
+                lda #$02                        // Screen code for "B"
+                sta VIDEO_RAM+$ad
+                lda #$15                        // Screen code for "U"
+                sta VIDEO_RAM+$ae
+                lda #$13                        // Screen code for "S"
+                sta VIDEO_RAM+$af
+                // Don't call UFailed - this is not a chip failure
+                jmp UFailed.deadLoop                    // Halt (address bus issue)
 
         testFailed_Walking:
-                // Walking bits test failed
-                // A register contains actual value, X has pattern index
+                // Walking bits test failed - specific chip failure
                 eor MemTestPattern,x            // XOR with expected to find bad bits
                 tax                             // Move to X for UFailed
-                // Fall through to showFailure
-
-        showFailure:
-                // Display "BAD" error message at screen positions $00AD-$00AF
+                // Display "BAD" - specific chip failure
                 lda #$02                        // Screen code for "B"
                 sta VIDEO_RAM+$ad
                 lda #$01                        // Screen code for "A"
                 sta VIDEO_RAM+$ae
                 lda #$04                        // Screen code for "D"
                 sta VIDEO_RAM+$af
-
-                // Call UFailed to show which chip(s) failed on the diagram
-                // X register contains XOR result showing bad bits
-                jsr UFailed
+                jsr UFailed                     // Show which chip failed
 }

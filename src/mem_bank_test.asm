@@ -402,12 +402,10 @@ memBankTest: {
                 jmp memFailureFlash
 
         memTestFailed_PRN:
-                // Failed during PRN pattern test
-                // Accumulator contains actual value
-                // X contains index into PrnTestPattern (the expected value)
-                // XOR actual with expected to get failing bits
-                eor PrnTestPattern,x
-                jmp memFailureFlash
+                // Failed during PRN pattern test - ADDRESS BUS FAILURE
+                // This indicates crossed address lines or page mirroring
+                // NOT a chip failure - do continuous fast flash instead
+                jmp memBusFailureFlash
 
         memTestFailed_Walking:
                 // Failed during walking bits test
@@ -549,5 +547,26 @@ memBankTest: {
 
                         tsx                     // Restore flash count
                         jmp flashLoop           // Repeat sequence forever
+        }
+
+        // ADDRESS BUS FAILURE FLASH - Continuous fast flashing
+        // No chip count pattern - indicates bus fault, not chip fault
+        memBusFailureFlash: {
+                busFlashLoop:
+                        // Flash WHITE
+                        lda #$01                // White color
+                        sta VIC2.BORDERCOLOUR
+                        sta VIC2.BGCOLOUR
+
+                        ShortDelayLoop($1f)     // Short delay for fast flash
+
+                        // Flash BLACK
+                        lda #$00                // Black color
+                        sta VIC2.BORDERCOLOUR
+                        sta VIC2.BGCOLOUR
+
+                        ShortDelayLoop($1f)     // Short delay for fast flash
+
+                        jmp busFlashLoop        // Continuous loop - no pattern
         }
 }

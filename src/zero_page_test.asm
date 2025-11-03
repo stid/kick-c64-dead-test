@@ -165,37 +165,52 @@ zeroPageTest: {
                 jmp mainLoop.zeroPageTestDone
 
                 //=============================================================
-                // Failure handlers
+                // Failure handlers - Different messages for different failures
                 //=============================================================
         zeroPageFailed_AA:
                 eor #$aa
                 tax
-                jmp showZeroPageFailure
+                // Display "BIT" - stuck bit failure
+                lda #$02                        // 'B' in screen code
+                sta VIDEO_RAM+$5d
+                lda #$09                        // 'I' in screen code
+                sta VIDEO_RAM+$5e
+                lda #$14                        // 'T' in screen code
+                sta VIDEO_RAM+$5f
+                jmp UFailed                     // Show which bits failed
 
         zeroPageFailed_55:
                 eor #$55
                 tax
-                jmp showZeroPageFailure
+                // Display "BIT" - stuck bit failure
+                lda #$02                        // 'B' in screen code
+                sta VIDEO_RAM+$5d
+                lda #$09                        // 'I' in screen code
+                sta VIDEO_RAM+$5e
+                lda #$14                        // 'T' in screen code
+                sta VIDEO_RAM+$5f
+                jmp UFailed                     // Show which bits failed
 
         zeroPageFailed_PRN:
-                eor PrnTestPattern,x
-                tax
-                jmp showZeroPageFailure
+                // Display "BUS" - address bus failure
+                lda #$02                        // 'B' in screen code
+                sta VIDEO_RAM+$5d
+                lda #$15                        // 'U' in screen code
+                sta VIDEO_RAM+$5e
+                lda #$13                        // 'S' in screen code
+                sta VIDEO_RAM+$5f
+                // Don't call UFailed - this is not a chip failure
+                jmp UFailed.deadLoop                    // Halt (address bus issue)
 
         zeroPageFailed_Walking:
                 eor MemTestPattern,x
                 tax
-                // Fall through to showZeroPageFailure
-
-        showZeroPageFailure:
-                // Display "BAD" result
+                // Display "BAD" - specific chip failure
                 lda #$02                        // 'B' in screen code
                 sta VIDEO_RAM+$5d
                 lda #$01                        // 'A' in screen code
                 sta VIDEO_RAM+$5e
                 lda #$04                        // 'D' in screen code
                 sta VIDEO_RAM+$5f
-
-                // Identify failed chip and halt
-                jmp UFailed
+                jmp UFailed                     // Show which chip failed
 }

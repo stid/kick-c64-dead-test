@@ -161,37 +161,52 @@ stackPageTest: {
                 jmp mainLoop.stackPageTestDone  // Continue to JSR-enabled tests
 
                 //=============================================================
-                // Failure handlers
+                // Failure handlers - Different messages for different failures
                 //=============================================================
         stackPageFailed_AA:
                 eor #$aa
                 tax
-                jmp showStackPageFailure
+                // Display "BIT" - stuck bit failure
+                lda #$02                        // 'B' in screen code
+                sta VIDEO_RAM+$85
+                lda #$09                        // 'I' in screen code
+                sta VIDEO_RAM+$86
+                lda #$14                        // 'T' in screen code
+                sta VIDEO_RAM+$87
+                jmp UFailed                     // Show which bits failed
 
         stackPageFailed_55:
                 eor #$55
                 tax
-                jmp showStackPageFailure
+                // Display "BIT" - stuck bit failure
+                lda #$02                        // 'B' in screen code
+                sta VIDEO_RAM+$85
+                lda #$09                        // 'I' in screen code
+                sta VIDEO_RAM+$86
+                lda #$14                        // 'T' in screen code
+                sta VIDEO_RAM+$87
+                jmp UFailed                     // Show which bits failed
 
         stackPageFailed_PRN:
-                eor PrnTestPattern,x
-                tax
-                jmp showStackPageFailure
+                // Display "BUS" - address bus failure
+                lda #$02                        // 'B' in screen code
+                sta VIDEO_RAM+$85
+                lda #$15                        // 'U' in screen code
+                sta VIDEO_RAM+$86
+                lda #$13                        // 'S' in screen code
+                sta VIDEO_RAM+$87
+                // Don't call UFailed - this is not a chip failure
+                jmp UFailed.deadLoop                    // Halt (address bus issue)
 
         stackPageFailed_Walking:
                 eor MemTestPattern,x
                 tax
-                // Fall through to showStackPageFailure
-
-        showStackPageFailure:
-                // Display "BAD" result
+                // Display "BAD" - specific chip failure
                 lda #$02                        // 'B' in screen code
                 sta VIDEO_RAM+$85
                 lda #$01                        // 'A' in screen code
                 sta VIDEO_RAM+$86
                 lda #$04                        // 'D' in screen code
                 sta VIDEO_RAM+$87
-
-                // Halt system - cannot proceed without stack
-                jmp UFailed
+                jmp UFailed                     // Show which chip failed
 }
