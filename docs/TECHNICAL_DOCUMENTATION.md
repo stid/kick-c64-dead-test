@@ -69,17 +69,25 @@ Early tests (memory bank, zero page, stack) cannot use:
 
 **Failure Detection**:
 
+The test differentiates between chip failures and bus failures:
+
+**Chip Failures** (AA/55/Walking Bits patterns):
 - XOR failed value with expected to identify bad bits
 - Each bit corresponds to a specific RAM chip:
-  - Bit 0 → U21 (Bank 8)
-  - Bit 1 → U9 (Bank 7)
-  - Bit 2 → U22 (Bank 6)
-  - Bit 3 → U10 (Bank 5)
-  - Bit 4 → U23 (Bank 4)
-  - Bit 5 → U11 (Bank 3)
-  - Bit 6 → U24 (Bank 2)
-  - Bit 7 → U12 (Bank 1)
-- Screen flashes white/black N times for chip N
+  - Bit 0 → U21 (Bank 8) - Flash 8 times
+  - Bit 1 → U9 (Bank 7) - Flash 7 times
+  - Bit 2 → U22 (Bank 6) - Flash 6 times
+  - Bit 3 → U10 (Bank 5) - Flash 5 times
+  - Bit 4 → U23 (Bank 4) - Flash 4 times
+  - Bit 5 → U11 (Bank 3) - Flash 3 times
+  - Bit 6 → U24 (Bank 2) - Flash 2 times
+  - Bit 7 → U12 (Bank 1) - Flash 1 time
+- Screen flashes white/black N times for chip N, then repeats
+
+**Bus Failures** (PRN pattern):
+- Indicates address bus fault (crossed lines, mirroring, page confusion)
+- Continuous FAST flashing (no count pattern)
+- Not a chip failure - no specific chip can be identified
 
 ### 2. Zero Page Test ($00-$FF)
 
@@ -132,6 +140,7 @@ Early tests (memory bank, zero page, stack) cannot use:
 1. $AA pattern (10101010) - Detects even-bit stuck failures
 2. $55 pattern (01010101) - Detects odd-bit stuck failures
 3. 247-byte PRN sequence - Detects address bus problems and page confusion
+4. 16 walking bit patterns - Enables specific chip identification (walking ones + walking zeros)
 
 **Why 247-byte PRN sequence?**
 
@@ -145,7 +154,27 @@ Early tests (memory bank, zero page, stack) cannot use:
 1. Write $AA to entire region, delay, verify
 2. Write $55 to entire region, delay, verify
 3. Write repeating 247-byte PRN sequence, delay, verify
-4. Any mismatch indicates RAM or address bus failure
+4. Write/verify 16 walking bit patterns to entire region
+5. Any mismatch indicates RAM or address bus failure
+
+**Error Message Differentiation**:
+
+When Low RAM test fails, different error messages indicate the failure type:
+
+- **"BIT"** - Stuck bit detected by $AA or $55 patterns
+  - Shows chip diagram with failed chip(s)
+  - System halts (infinite loop)
+
+- **"BUS"** - Address bus failure detected by PRN pattern
+  - Indicates crossed/shorted address lines or page confusion
+  - No chip diagram shown (not a chip failure)
+  - System halts (infinite loop)
+
+- **"BAD"** - Specific chip failure detected by walking bits
+  - Shows chip diagram with failed chip(s)
+  - System halts (infinite loop)
+
+This differentiation helps diagnose whether the problem is a failed RAM chip or an address bus fault.
 
 **Completeness**: With this test, 100% of Ultimax-accessible RAM is now tested ($0000-$0FFF)
 
@@ -285,14 +314,27 @@ The diagnostic maintains CIA timers for:
 
 **Memory Bank Test Failure**:
 
-- Screen flashing pattern
-- Number of flashes = failed chip number
+*Chip Failures (AA/55/Walking Bits patterns)*:
+- Screen flashing pattern - counted flashes
+- Number of flashes (1-8) = failed chip number
+- Pattern repeats continuously: flash N times → pause → repeat
 - Infinite loop (system halted)
 
-**Other Test Failures**:
+*Bus Failures (PRN pattern)*:
+- Continuous fast flashing (no count pattern)
+- No pause between cycles
+- Indicates address bus fault (crossed lines, mirroring)
+- NOT a chip failure
+- Infinite loop (system halted)
 
-- Display "BAD" at test location
-- Show failed chip ID in diagram
+**Other Test Failures** (Zero Page, Stack Page, Low RAM, Screen RAM, Color RAM, RAM Test):
+
+- Display "BIT", "BUS", or "BAD" at test location (depending on failure type):
+  - **"BIT"** - Stuck bit failure (AA/55 patterns) - shows chip diagram
+  - **"BUS"** - Address bus failure (PRN pattern) - no chip diagram
+  - **"BAD"** - Specific chip failure (walking bits) - shows chip diagram
+- Show failed chip ID in diagram (for BIT and BAD, not BUS)
+- Color failed chips red
 - Enter infinite loop (deadLoop)
 
 ## Memory Map

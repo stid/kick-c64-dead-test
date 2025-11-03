@@ -60,6 +60,27 @@ The C64 uses **8 RAM chips** (4164 DRAM, 64K x 1-bit each), with each chip provi
 - Practicing on a broken/spare C64 first
 - Asking an experienced repair technician for guidance
 
+## Border Flash Patterns
+
+**If the initial memory bank test fails (during black screen):**
+
+### Chip Failures (Counted flashes with pauses):
+- 1 flash = U12 (Bit 7)
+- 2 flashes = U24 (Bit 6)
+- 3 flashes = U11 (Bit 5)
+- 4 flashes = U23 (Bit 4)
+- 5 flashes = U10 (Bit 3)
+- 6 flashes = U22 (Bit 2)
+- 7 flashes = U9 (Bit 1)
+- 8 flashes = U21 (Bit 0)
+- Pattern repeats: flash N times → pause → repeat
+
+### Bus Failures (Continuous fast flashing):
+- Rapid continuous white/black flashing with no pattern
+- No pause between cycles
+- Indicates address bus fault (crossed lines, mirroring)
+- NOT a chip failure - check motherboard traces and solder connections
+
 ## Method 1: RAM Chip Reseating (Recommended)
 
 This is the **safest and most common** method for testing diagnostic tools.
@@ -154,46 +175,60 @@ This tests the **PRN sequence** detection in the Low RAM test, which specificall
 When you **intentionally lift a RAM chip**, you should see:
 
 ```
-ZERO PAGE        BAD
-STACK PAGE       BAD
-LOW RAM          BAD  ← If chip lifted before this test
+ZERO PAGE        BIT or BAD  ← "BIT" for stuck bits, "BAD" for walking bits
+STACK PAGE       BIT or BAD
+LOW RAM          BIT, BUS, or BAD  ← "BIT" for stuck bits, "BUS" for address bus, "BAD" for specific chip
 SCREEN RAM       OK   ← Unless severely lifted
 COLOR RAM        OK   ← Separate chips
-RAM TEST         BAD  ← If chip lifted
+RAM TEST         BIT or BAD
 SOUND TEST       OK
 FILTERS TEST     OK
 ```
 
-Plus **red "BAD" indicators** in the chip diagram box showing the specific chip ID (U9, U21, etc.).
+Plus **red "BAD" indicators** in the chip diagram box showing the specific chip ID (U9, U21, etc.) for BIT and BAD errors (not shown for BUS errors).
+
+**Error Message Meanings:**
+- **BIT** = Stuck bit failure (AA/55 patterns) - shows chip diagram
+- **BUS** = Address bus failure (PRN patterns) - no chip diagram, indicates crossed/shorted address lines
+- **BAD** = Specific chip failure (walking bits) - shows chip diagram
 
 ### Test Patterns and What They Detect
 
-**Low RAM Test** uses three patterns:
+**All RAM Tests** use four-phase pattern testing (Memory Bank, Zero Page, Stack Page, Low RAM):
 
-1. **$AA Pattern (10101010)**
+1. **$AA Pattern (10101010)** → **"BIT"** error if fails
    - Tests even bit positions
    - Detects stuck-high bits
    - If this fails → One or more even bits (0,2,4,6) are bad
+   - Shows chip diagram with failed chip(s)
 
-2. **$55 Pattern (01010101)**
+2. **$55 Pattern (01010101)** → **"BIT"** error if fails
    - Tests odd bit positions
    - Detects stuck-low bits
    - If this fails → One or more odd bits (1,3,5,7) are bad
+   - Shows chip diagram with failed chip(s)
 
-3. **PRN Sequence (247 bytes)**
+3. **PRN Sequence (247 bytes)** → **"BUS"** error if fails
    - Tests address bus integrity
    - Detects page confusion and mirrored addresses
    - If this fails → Address lines might be crossed/shorted
+   - NO chip diagram shown (not a chip failure)
+
+4. **Walking Bits (16 patterns)** → **"BAD"** error if fails
+   - 8 walking ones: $01,$02,$04,$08,$10,$20,$40,$80
+   - 8 walking zeros: $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F
+   - Enables precise chip identification
+   - Shows chip diagram with specific failed chip
 
 ### Real-World Failure Patterns
 
-| Symptom | Likely Cause | What You'll See |
-|---------|--------------|-----------------|
-| Single bit always wrong | One RAM chip dead | One U-chip marked red |
-| Multiple bits in pattern | Multiple RAM chips | Multiple U-chips marked red |
-| All bits wrong | Chip completely unseated | All U9-U24 marked, or black screen |
-| Intermittent failures | Poor socket contact | Test passes sometimes, fails others |
-| PRN test fails, AA/55 pass | Address bus problem | May not identify specific chip |
+| Symptom | Likely Cause | Error Message | What You'll See |
+|---------|--------------|---------------|-----------------|
+| Single bit always wrong | One RAM chip dead | BIT or BAD | One U-chip marked red |
+| Multiple bits in pattern | Multiple RAM chips | BIT or BAD | Multiple U-chips marked red |
+| All bits wrong | Chip completely unseated | BIT or BAD | All U9-U24 marked, or black screen |
+| Intermittent failures | Poor socket contact | BIT or BAD | Test passes sometimes, fails others |
+| PRN test fails, AA/55 pass | Address bus problem | BUS | No chip diagram, system halts |
 
 ## Troubleshooting
 

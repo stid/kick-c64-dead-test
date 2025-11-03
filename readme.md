@@ -93,10 +93,11 @@ The original test logic and sequence remain untouched where applicable. Below ar
 
 ### New Tests (Not in Original)
 
-- **Low RAM Test** (v1.3.0) - Tests the previously untested $0200-$03FF memory region (512 bytes between stack and screen RAM). Test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965). Uses three test patterns:
+- **Low RAM Test** (v1.3.0) - Tests the previously untested $0200-$03FF memory region (512 bytes between stack and screen RAM). Test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965). Uses four test patterns:
   - `$AA` pattern (10101010) - Detects stuck-high bits on even positions
   - `$55` pattern (01010101) - Detects stuck-low bits on odd positions
   - 247-byte PRN sequence - Detects address bus problems and page confusion (prime-like length ensures non-alignment with 256-byte pages to catch mirrored or crossed address lines)
+  - 16 walking bit patterns - Enables specific chip identification (8 walking ones + 8 walking zeros)
 
 - **Sound Filters Test** (v1.2.0) - Tests SID analog filters which are prone to capacitor aging. Based on Andrew Challis's methodology (video: https://www.youtube.com/watch?v=QYgfcvlqIlc&t=1438s). Broken filters are often not detected by the basic oscillator test alone.
 
@@ -135,6 +136,38 @@ The original test logic remains preserved, with new tests inserted at appropriat
 10. **soundTest** - Tests SID oscillators (original test)
 11. **filtersTest** - Tests SID analog filters (**NEW in v1.2.0**)
 12. Counter updated, border color incremented, loop back to step 2
+
+## Understanding Error Messages
+
+When a RAM test fails, the diagnostic displays specific error messages to help identify the problem type:
+
+### Error Message Types
+
+| Message | Meaning | Cause | Chip Diagram | Action |
+|---------|---------|-------|--------------|--------|
+| **BIT** | Stuck bit failure | One or more bits permanently stuck high or low (detected by $AA/$55 patterns) | ✅ Shows failed chip(s) | Replace identified RAM chip(s) |
+| **BUS** | Address bus fault | Crossed, shorted, or open address lines (detected by PRN pattern) | ❌ No diagram | Check address line connections and solder joints |
+| **BAD** | Specific chip failure | Individual chip identified by walking bits test | ✅ Shows failed chip(s) | Replace identified RAM chip(s) |
+
+### Memory Bank Test Flash Patterns
+
+During the initial black screen phase (~10 seconds), failures are indicated by border flashing:
+
+**Chip Failures** - Counted flashes (1-8) indicate which chip failed:
+- 1 flash = U12 (bit 7)
+- 2 flashes = U24 (bit 6)
+- 3 flashes = U11 (bit 5)
+- 4 flashes = U23 (bit 4)
+- 5 flashes = U10 (bit 3)
+- 6 flashes = U22 (bit 2)
+- 7 flashes = U9 (bit 1)
+- 8 flashes = U21 (bit 0)
+- Pattern repeats: flash N times → pause → repeat
+
+**Bus Failures** - Continuous rapid flashing with no pattern:
+- Fast white/black flashing with no pause between cycles
+- Indicates address bus fault (crossed lines, mirroring, page confusion)
+- NOT a chip failure - check motherboard traces and solder connections
 
 ## Burning EPROM & Compatible Cartridge
 
