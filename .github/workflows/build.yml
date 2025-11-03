@@ -14,7 +14,17 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
-    
+
+    - name: Check version consistency
+      run: |
+        chmod +x scripts/check-version.sh
+        ./scripts/check-version.sh
+
+    - name: Validate PRN pattern
+      run: |
+        chmod +x scripts/validate-prn-pattern.py
+        python3 scripts/validate-prn-pattern.py
+
     - name: Set up Java
       uses: actions/setup-java@v3
       with:
@@ -57,7 +67,7 @@ jobs:
         ls -la bin/
     
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dead-test-binaries
         path: |
@@ -68,7 +78,7 @@ jobs:
     
     - name: Upload build log
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-log
         path: bin/buildlog.txt
@@ -83,7 +93,7 @@ jobs:
       uses: actions/checkout@v3
     
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dead-test-binaries
         path: bin/
@@ -113,20 +123,69 @@ jobs:
     
     - name: Upload test screenshot
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-screenshot
         path: bin/test-screenshot.png
         retention-days: 7
 
+  test-mode:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Cache KickAssembler
+      id: cache-kickass
+      uses: actions/cache@v3
+      with:
+        path: /tmp/KickAssembler
+        key: kickass-5.25
+
+    - name: Download KickAssembler
+      if: steps.cache-kickass.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p /tmp/KickAssembler
+        cd /tmp/KickAssembler
+        wget -q http://theweb.dk/KickAssembler/KickAss.zip
+        unzip -q KickAss.zip
+        rm KickAss.zip
+
+    - name: Install VICE
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y vice xvfb
+
+    - name: Run TEST_MODE validation
+      run: |
+        export KICKASS_BIN=/tmp/KickAssembler/KickAss.jar
+        chmod +x scripts/test-mode-validation.sh
+        ./scripts/test-mode-validation.sh
+
+    - name: Upload test-mode screenshot
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-mode-screenshot
+        path: bin/test-mode-screenshot.png
+        retention-days: 7
+
   release:
-    needs: [build, test]
+    needs: [build, test, test-mode]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dead-test-binaries
         path: bin/
