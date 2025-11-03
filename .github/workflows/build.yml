@@ -106,14 +106,15 @@ jobs:
     - name: Verify cartridge format
       run: |
         # Use cartconv to verify the cartridge format
-        cartconv -format | grep -q "ulti" || (echo "Ultimax format not supported" && exit 1)
-        cartconv -i bin/dead-test.crt -info || (echo "Invalid cartridge format" && exit 1)
+        cartconv --types | grep -q "ulti" || (echo "Ultimax format not supported" && exit 1)
+        cartconv -f bin/dead-test.crt || (echo "Invalid cartridge format" && exit 1)
     
     - name: Test in VICE (headless)
       run: |
         # Run VICE in headless mode for a short time to verify it loads
-        timeout 10s xvfb-run -a x64sc -default -cartcrt bin/dead-test.crt -warp -exitscreenshot bin/test-screenshot.png || true
-        
+        # Using -limitcycles for clean exit (~985,248 cycles/sec * 10 sec = 10M cycles)
+        xvfb-run -a x64sc -default -cartcrt bin/dead-test.crt -warp -limitcycles 10000000 -confirmonexit 0 -exitscreenshot bin/test-screenshot.png || true
+
         # Check if screenshot was created (indicates successful load)
         if [ -f bin/test-screenshot.png ]; then
           echo "Dead Test loaded successfully in VICE"

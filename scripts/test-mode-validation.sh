@@ -76,11 +76,15 @@ echo
 SCREENSHOT="bin/test-mode-screenshot.png"
 rm -f "$SCREENSHOT"
 
-# Run VICE with screenshot on exit
-timeout 20s $XVFB_CMD x64sc \
+# Calculate cycles: ~985,248 cycles/sec * 20 seconds = ~20 million cycles
+# Using -limitcycles for clean exit and screenshot capture
+# -confirmonexit: 0 = don't confirm exit
+$XVFB_CMD x64sc \
     -default \
     -cartcrt bin/dead-test.crt \
     -warp \
+    -limitcycles 20000000 \
+    -confirmonexit 0 \
     -exitscreenshot "$SCREENSHOT" \
     > /tmp/vice-output.log 2>&1 || true
 
