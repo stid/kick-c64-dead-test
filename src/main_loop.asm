@@ -112,7 +112,7 @@ mainLoop: {
                 // Zero page works, but still can't use stack
                 jmp stackPageTest       
 
-        stackPageTestDone:              
+        stackPageTestDone:
                 //=========================================================
                 // CRITICAL MILESTONE: Stack test passed!
                 // From this point forward we can use:
@@ -121,10 +121,13 @@ mainLoop: {
                 // - PHP/PLP for status preservation
                 // - Interrupt handlers (if we enabled them)
                 //=========================================================
-                
+
                 // First subroutine call in the entire program!
                 jsr updateCia1Time      // Update timer display
                 // Run remaining tests with full subroutine support
+                jsr lowRamTest          // Test $0200-$03FF (previously untested)
+                jsr updateCia1Time
+
                 jsr screenRamTest       // Test video RAM
                 jsr updateCia1Time      
                 
@@ -183,6 +186,7 @@ mainLoop: {
 #import "./zero_page_test.asm"
 #import "./stack_page_test.asm"
 #import "./cia_timers.asm"
+#import "./low_ram_test.asm"
 #import "./screen_ram_test.asm"
 #import "./color_ram_test.asm"
 #import "./ram_test.asm"

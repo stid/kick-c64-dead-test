@@ -24,6 +24,7 @@ src/
 │   ├── mem_bank_test.asm    # Initial RAM bank verification
 │   ├── zero_page_test.asm   # $00-$FF testing
 │   ├── stack_page_test.asm  # $0100-$01FF testing
+│   ├── low_ram_test.asm     # $0200-$03FF testing (AA/55/PRN patterns)
 │   ├── screen_ram_test.asm  # $0400 display memory
 │   ├── color_ram_test.asm   # $D800 color memory
 │   ├── ram_test.asm          # General RAM testing
@@ -52,11 +53,12 @@ src/
 2. Layout Drawing      → Display initialized only after RAM passes
 3. Zero Page Test      → Tests $00-$FF (critical for variables)
 4. Stack Page Test     → Tests $0100-$01FF (enables JSR/RTS usage)
-5. Screen RAM Test     → Tests $0400 display memory
-6. Color RAM Test      → Tests $D800 color attributes
-7. General RAM Test    → Extended memory testing
-8. Font Test           → Character ROM verification
-9. Sound/Filter Tests  → SID chip testing
+5. Low RAM Test        → Tests $0200-$03FF (AA/55/PRN patterns)
+6. Screen RAM Test     → Tests $0400 display memory
+7. Color RAM Test      → Tests $D800 color attributes
+8. General RAM Test    → Extended memory testing
+9. Font Test           → Character ROM verification
+10. Sound/Filter Tests → SID chip testing
 ```
 Border color cycles on each iteration. Tests run continuously with iteration counter.
 
@@ -80,6 +82,6 @@ Override defaults with: `make VARIABLE=value`
 ## References
 
 - **Installation & Prerequisites:** See `README.md`
-- **Detailed Test Algorithms:** See `TECHNICAL_DOCUMENTATION.md`
+- **Detailed Test Algorithms:** See `docs/TECHNICAL_DOCUMENTATION.md`
 - **Makefile Options:** Run `make help`
 - **VICE Documentation:** [https://vice-emu.sourceforge.io/](https://vice-emu.sourceforge.io/)

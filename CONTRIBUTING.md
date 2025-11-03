@@ -151,9 +151,14 @@ When adding build targets:
 ## Version Numbering
 
 We use semantic versioning (MAJOR.MINOR.PATCH):
-- **MAJOR**: Incompatible changes to test sequence
-- **MINOR**: New tests or significant enhancements
+- **MAJOR**: Incompatible changes to test sequence OR fundamental diagnostic methodology shifts
+  - Examples: Complete algorithm rewrites, new pattern methodologies, diagnostic capability transformations
+  - v2.0.0: Complete rewrite with AA/55/PRN patterns and error type differentiation
+- **MINOR**: New tests or significant enhancements (backward-compatible)
+  - Examples: Adding new test modules, enhanced error reporting, visual improvements
+  - v1.3.0: Low RAM test addition, v1.2.0: SID filter test
 - **PATCH**: Bug fixes and minor improvements
+  - Examples: Fixing edge cases, documentation updates, small optimizations
 
 ## Copyright
 
