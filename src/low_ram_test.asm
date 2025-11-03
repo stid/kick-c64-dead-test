@@ -30,9 +30,10 @@
 // - Used by BASIC and Kernal for various purposes
 //
 // Test Pattern Philosophy (suggested by Sven Petersen - https://github.com/svenpetersen1965):
-// 1. $AA pattern: Detects even-bit stuck failures
-// 2. $55 pattern: Detects odd-bit stuck failures
-// 3. PRN sequence (247 bytes): Detects address bus problems and page confusion
+// 1. $AA pattern (10101010): Detects stuck-low bits on odd positions
+// 2. $55 pattern (01010101): Detects stuck-high bits on even positions
+// 3. 247-byte PRN sequence: Detects address bus problems and page confusion
+// 4. Walking ones/zeros (16 patterns): Identifies specific failing chips
 //
 // Why 247-byte PRN sequence?
 // - Prime-like odd length ensures pattern "drifts" relative to page boundaries
@@ -40,11 +41,12 @@
 // - Catches mirrored or confused address lines that 256-aligned tests miss
 // - If pages are swapped or address lines crossed, PRN will be out of phase
 //
-// Method: For entire memory range:
+// Method: For entire memory range ($0200-$03FF):
 //          1. Write $AA to all locations, then verify
 //          2. Write $55 to all locations, then verify
 //          3. Write 247-byte PRN sequence repeatedly, then verify
-//          4. Any mismatch indicates RAM or address bus failure
+//          4. Write each of 16 walking bit patterns, then verify
+//          5. Any mismatch indicates RAM or address bus failure
 //
 // On Success: Displays "OK" on screen
 // On Failure: Displays "BAD" with failing address information
@@ -207,11 +209,46 @@ lowRamTest: {
         !:      // Check if we've reached $0400 (screen RAM)
                 lda ZP.tmpDestAddressHigh
                 cmp #>$0400
-                bne verifyPRNLoop               // Continue if not at $04xx
+                bne !+
                 lda ZP.tmpDestAddressLow
                 cmp #<$0400
-                bne verifyPRNLoop               // Continue if not at $0400
-                jmp allTestsPassed
+                bne !+
+                jmp walkingBitsPhase
+        !:      jmp verifyPRNLoop
+
+                //=====================================================
+                // TEST PHASE 4: Walking Bits (16 patterns)
+                // Tests individual bit positions for chip identification
+                //=====================================================
+        walkingBitsPhase:
+                ldx #$04                        // Start with walking ones
+        walkingBitsLoop:
+                lda MemTestPattern,x
+                ldy #$00
+        writeWalkingLoop:
+                sta $0200,y
+                sta $0300,y
+                iny
+                bne writeWalkingLoop
+
+                ShortDelayLoop($3f)
+
+                lda MemTestPattern,x
+                ldy #$00
+        verifyWalkingLoop:
+                cmp $0200,y
+                bne !fail+
+                cmp $0300,y
+                bne !fail+
+                iny
+                bne verifyWalkingLoop
+                jmp !next+
+        !fail:  jmp testFailed_Walking
+        !next:
+
+                inx
+                cpx #$14                        // Test through index 19
+                bne walkingBitsLoop
 
         allTestsPassed:
                 // All patterns passed!
@@ -244,6 +281,13 @@ lowRamTest: {
                 // PRN sequence test failed
                 // A register contains actual value, X has pattern index
                 eor PrnTestPattern,x            // XOR with expected to find bad bits
+                tax                             // Move to X for UFailed
+                jmp showFailure
+
+        testFailed_Walking:
+                // Walking bits test failed
+                // A register contains actual value, X has pattern index
+                eor MemTestPattern,x            // XOR with expected to find bad bits
                 tax                             // Move to X for UFailed
                 // Fall through to showFailure
 
