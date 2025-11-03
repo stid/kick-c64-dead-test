@@ -43,9 +43,9 @@ jobs:
       run: |
         mkdir -p /tmp/KickAssembler
         cd /tmp/KickAssembler
-        wget -q http://theweb.dk/KickAssembler/KickAss.zip
-        unzip -q KickAss.zip
-        rm KickAss.zip
+        wget -q https://theweb.dk/KickAssembler/KickAssembler.zip
+        unzip -q KickAssembler.zip
+        rm KickAssembler.zip
     
     - name: Install VICE tools
       run: |
@@ -155,9 +155,9 @@ jobs:
       run: |
         mkdir -p /tmp/KickAssembler
         cd /tmp/KickAssembler
-        wget -q http://theweb.dk/KickAssembler/KickAss.zip
-        unzip -q KickAss.zip
-        rm KickAss.zip
+        wget -q https://theweb.dk/KickAssembler/KickAssembler.zip
+        unzip -q KickAssembler.zip
+        rm KickAssembler.zip
 
     - name: Install VICE
       run: |
