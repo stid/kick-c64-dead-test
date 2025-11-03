@@ -13,8 +13,13 @@
 // Purpose: Verify basic RAM functionality to establish foundation for all
 //          subsequent tests. Without working RAM, nothing else can function.
 //
-// Method:  Pattern-based write/read verification across all memory pages
-//          Uses 20 different test patterns to detect various failure modes
+// Method:  AA/55/PRN pattern testing (suggested by Sven Petersen)
+//          Superior to walking bits for detecting address bus problems
+//
+// Test Patterns:
+//   1. $AA (10101010) - Detects stuck-low bits on odd positions
+//   2. $55 (01010101) - Detects stuck-high bits on even positions
+//   3. 247-byte PRN sequence - Detects address bus problems and page confusion
 //
 // CRITICAL CONSTRAINTS:
 // - NO STACK OPERATIONS (JSR/RTS/PHA/PLA) - Stack at $0100-$01FF not verified
@@ -26,23 +31,18 @@
 //               Then enters infinite loop - system halted
 //=============================================================================
 memBankTest: {
-                // Initialize test parameters
-                // X = Pattern index (counting backwards from 20 to 0)
-                // Y = Memory offset within each page (0-255)
-                ldx #$15                // Start at pattern 21 ($15) to allow pre-decrement
+                //=============================================================
+                // PHASE 1: Write and verify $AA pattern
+                //=============================================================
                 ldy #$00                // Start at offset 0 in each page
 
-        memPatternSetLoop:
-                // Write current test pattern to all memory pages simultaneously
-                // This approach tests all RAM chips with the same pattern,
-                // making it easier to identify which specific chip failed
-                lda MemTestPattern,x    // Get current test pattern byte
-                
+        writeAALoop:
+                lda #$aa                // $AA pattern
+
                 // Write to all 15 pages ($0100-$0F00)
-                // Each page tests different address lines
                 sta $0100,y             // Stack page (will be tested separately too)
                 sta $0200,y             // Page 2
-                sta $0300,y             // Page 3  
+                sta $0300,y             // Page 3
                 sta $0400,y             // Screen RAM page
                 sta $0500,y             // Page 5
                 sta $0600,y             // Page 6
@@ -55,92 +55,367 @@ memBankTest: {
                 sta $0d00,y             // Page 13
                 sta $0e00,y             // Page 14
                 sta $0f00,y             // Page 15 - Last testable page
-                
+
                 iny                     // Next offset in page
-                bne memPatternSetLoop   // Continue until page filled (256 bytes)
+                bne writeAALoop         // Continue until page filled (256 bytes)
 
                 // Critical delay to ensure memory cells stabilize
-                // Dynamic RAM needs time to charge/discharge capacitors
-                // This delay helps detect:
-                // - Weak cells that lose charge quickly
-                // - Capacitor failures
-                // - Timing-related issues
                 LongDelayLoop(0,0)
 
-                // Verify all memory locations match expected pattern
-                // Y still = 0 from overflow after writing 256 bytes
-        memPatternCompLoop:
-                // Read back and verify each memory location
-                // If any bit differs from expected, we can identify
-                // which RAM chip failed based on the bit position
+                // Verify $AA pattern
+                ldy #$00
+        verifyAALoop:
                 lda $0100,y
-                cmp MemTestPattern,x
-                bne memTestFailed       // Jump if mismatch found
+                cmp #$aa
+                bne !fail+
                 lda $0200,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0300,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0400,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0500,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0600,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0700,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0800,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0900,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0a00,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0b00,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0c00,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0d00,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0e00,y
-                cmp MemTestPattern,x
-                bne memTestFailed
+                cmp #$aa
+                bne !fail+
                 lda $0f00,y
-                cmp MemTestPattern,x
-                bne memTestFailed
-                iny                     // Next memory offset
-                beq memTestPassed       // Y wrapped to 0 = all 256 bytes verified
-                jmp memPatternCompLoop  // Continue checking
+                cmp #$aa
+                bne !fail+
+                iny
+                bne verifyAALoop
+                jmp !next+
+        !fail:  jmp memTestFailed_AA
+        !next:
 
-        memTestFailed:
-                // A memory location didn't match the expected pattern
-                // The accumulator contains the actual (failed) value
-                // Jump to failure handler to identify which chip failed
-                jmp memFailureFlash
+                //=============================================================
+                // PHASE 2: Write and verify $55 pattern
+                //=============================================================
+                ldy #$00
 
-        memTestPassed:
-                // All 256 bytes matched for current pattern
-                // Move to next test pattern
-                dex                     // Previous pattern (counting backwards)
-                bmi memTestDone         // X < 0 means all 21 patterns tested
-                ldy #$00                // Reset page offset for next pattern
-                jmp memPatternSetLoop   // Test with next pattern
+        write55Loop:
+                lda #$55                // $55 pattern
+
+                sta $0100,y
+                sta $0200,y
+                sta $0300,y
+                sta $0400,y
+                sta $0500,y
+                sta $0600,y
+                sta $0700,y
+                sta $0800,y
+                sta $0900,y
+                sta $0a00,y
+                sta $0b00,y
+                sta $0c00,y
+                sta $0d00,y
+                sta $0e00,y
+                sta $0f00,y
+
+                iny
+                bne write55Loop
+
+                LongDelayLoop(0,0)
+
+                // Verify $55 pattern
+                ldy #$00
+        verify55Loop:
+                lda $0100,y
+                cmp #$55
+                bne !fail+
+                lda $0200,y
+                cmp #$55
+                bne !fail+
+                lda $0300,y
+                cmp #$55
+                bne !fail+
+                lda $0400,y
+                cmp #$55
+                bne !fail+
+                lda $0500,y
+                cmp #$55
+                bne !fail+
+                lda $0600,y
+                cmp #$55
+                bne !fail+
+                lda $0700,y
+                cmp #$55
+                bne !fail+
+                lda $0800,y
+                cmp #$55
+                bne !fail+
+                lda $0900,y
+                cmp #$55
+                bne !fail+
+                lda $0a00,y
+                cmp #$55
+                bne !fail+
+                lda $0b00,y
+                cmp #$55
+                bne !fail+
+                lda $0c00,y
+                cmp #$55
+                bne !fail+
+                lda $0d00,y
+                cmp #$55
+                bne !fail+
+                lda $0e00,y
+                cmp #$55
+                bne !fail+
+                lda $0f00,y
+                cmp #$55
+                bne !fail+
+                iny
+                bne verify55Loop
+                jmp !next+
+        !fail:  jmp memTestFailed_55
+        !next:
+
+                //=============================================================
+                // PHASE 3: Write and verify PRN sequence
+                // PRN is 247 bytes, so it repeats: [0-246],[0-8] for 256 bytes
+                //=============================================================
+                ldx #$00                // PRN pattern index
+                ldy #$00                // Page offset
+
+        writePRNLoop:
+                lda PrnTestPattern,x    // Get PRN byte
+
+                sta $0100,y
+                sta $0200,y
+                sta $0300,y
+                sta $0400,y
+                sta $0500,y
+                sta $0600,y
+                sta $0700,y
+                sta $0800,y
+                sta $0900,y
+                sta $0a00,y
+                sta $0b00,y
+                sta $0c00,y
+                sta $0d00,y
+                sta $0e00,y
+                sta $0f00,y
+
+                // Increment PRN index with wrap at 247
+                inx
+                cpx #247                // PRN sequence length
+                bne !+
+                ldx #$00                // Wrap to start
+        !:
+                iny                     // Next page offset
+                bne writePRNLoop
+
+                LongDelayLoop(0,0)
+
+                // Verify PRN pattern
+                ldx #$00
+                ldy #$00
+        verifyPRNLoop:
+                lda $0100,y
+                cmp PrnTestPattern,x
+                bne !fail+
+                lda $0200,y
+                cmp PrnTestPattern,x
+                bne !fail+
+                lda $0300,y
+                cmp PrnTestPattern,x
+                bne !fail+
+                lda $0400,y
+                cmp PrnTestPattern,x
+                bne !fail+
+                jmp !continue+
+        !fail:  jmp memTestFailed_PRN
+        !continue:
+                lda $0500,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0600,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0700,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0800,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0900,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0a00,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0b00,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0c00,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0d00,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0e00,y
+                cmp PrnTestPattern,x
+                bne !fail-
+                lda $0f00,y
+                cmp PrnTestPattern,x
+                bne !fail-
+
+                // Increment PRN index with wrap at 247
+                inx
+                cpx #247
+                bne !+
+                ldx #$00
+        !:
+                iny
+                bne !+
+                jmp walkingBitsPhase
+        !:      jmp verifyPRNLoop
+
+                //=============================================================
+                // PHASE 4: Walking bits tests (from original Dead Test)
+                // Tests individual bit positions for chip identification
+                //=============================================================
+        walkingBitsPhase:
+                // Test patterns: walking ones + walking zeros from MemTestPattern
+                // Index 4-11 = walking ones ($01, $02, $04, $08, $10, $20, $40, $80)
+                // Index 12-19 = walking zeros ($FE, $FD, $FB, $F7, $EF, $DF, $BF, $7F)
+                ldx #$04                // Start at index 4 (first walking one)
+
+        walkingBitsLoop:
+                lda MemTestPattern,x    // Get current test pattern
+                ldy #$00                // Reset page offset
+
+        writeWalkingLoop:
+                sta $0100,y
+                sta $0200,y
+                sta $0300,y
+                sta $0400,y
+                sta $0500,y
+                sta $0600,y
+                sta $0700,y
+                sta $0800,y
+                sta $0900,y
+                sta $0a00,y
+                sta $0b00,y
+                sta $0c00,y
+                sta $0d00,y
+                sta $0e00,y
+                sta $0f00,y
+                iny
+                bne writeWalkingLoop
+
+                // Delay for memory stabilization
+                LongDelayLoop(0,0)
+
+                // Verify pattern
+                lda MemTestPattern,x    // Get expected value
+                ldy #$00
+        verifyWalkingLoop:
+                cmp $0100,y
+                bne !fail+
+                cmp $0200,y
+                bne !fail+
+                cmp $0300,y
+                bne !fail+
+                cmp $0400,y
+                bne !fail+
+                cmp $0500,y
+                bne !fail+
+                cmp $0600,y
+                bne !fail+
+                cmp $0700,y
+                bne !fail+
+                cmp $0800,y
+                bne !fail+
+                cmp $0900,y
+                bne !fail+
+                cmp $0a00,y
+                bne !fail+
+                cmp $0b00,y
+                bne !fail+
+                cmp $0c00,y
+                bne !fail+
+                cmp $0d00,y
+                bne !fail+
+                cmp $0e00,y
+                bne !fail+
+                cmp $0f00,y
+                bne !fail+
+                iny
+                bne verifyWalkingLoop
+                jmp !next+
+        !fail:  jmp memTestFailed_Walking
+        !next:
+
+                // Move to next pattern
+                inx
+                cpx #$14                // Test through index 19 (last walking zero)
+                bne !+
+                jmp memTestDone
+        !:      jmp walkingBitsLoop
 
         memTestDone:
                 // All memory tested successfully with all patterns!
                 // Safe to proceed with visual initialization
                 jmp mainLoop.memBankTestDone     // Continue to next test
                 // CRITICAL: Using JMP not JSR - stack still not verified!
+
+        memTestFailed_AA:
+                // Failed during $AA pattern test
+                // Accumulator contains actual value, XOR with expected $AA
+                eor #$aa
+                jmp memFailureFlash
+
+        memTestFailed_55:
+                // Failed during $55 pattern test
+                // Accumulator contains actual value, XOR with expected $55
+                eor #$55
+                jmp memFailureFlash
+
+        memTestFailed_PRN:
+                // Failed during PRN pattern test
+                // Accumulator contains actual value
+                // X contains index into PrnTestPattern (the expected value)
+                // XOR actual with expected to get failing bits
+                eor PrnTestPattern,x
+                jmp memFailureFlash
+
+        memTestFailed_Walking:
+                // Failed during walking bits test
+                // Accumulator contains actual value
+                // X contains index into MemTestPattern (the expected value)
+                // XOR actual with expected to get failing bits
+                eor MemTestPattern,x
+                jmp memFailureFlash
 
         memFailureFlash: {
                 // Identify which RAM chip failed based on bit differences
@@ -149,12 +424,10 @@ memBankTest: {
                 // Bit 1 = U9  (Bank 7)  Bit 5 = U11 (Bank 3)
                 // Bit 2 = U22 (Bank 6)  Bit 6 = U24 (Bank 2)
                 // Bit 3 = U10 (Bank 5)  Bit 7 = U12 (Bank 1)
-                
-                // XOR actual vs expected to get difference bits
-                // Result: 1 = bit differs, 0 = bit matches
-                eor MemTestPattern,x    
+
+                // A contains XOR result (difference bits)
                 tax                     // Save difference pattern
-                
+
                 // Check each bit to identify failed chip
                 // Start with bit 0 (Bank 8/U21)
                 and #$fe                // Mask all except bit 0
@@ -220,9 +493,9 @@ memBankTest: {
                 // Visual failure indication through screen flashing
                 // Number of flashes = failed chip number (1-8)
                 // This provides diagnostic info even without working display RAM
-                
+
                 txs                             // X = flash count, save to stack pointer
-                
+
                 flashLoop:                      // Main flash cycle
                         // Flash WHITE
                         lda #$01                // White color
@@ -231,7 +504,7 @@ memBankTest: {
 
                         LongDelayLoop($7f,0)    // Visible duration
 
-                        // Flash BLACK  
+                        // Flash BLACK
                         lda #$00                // Black color
                         sta VIC2.BORDERCOLOUR
                         sta VIC2.BGCOLOUR
@@ -242,9 +515,9 @@ memBankTest: {
                         // Uses nested delay loops to control flash timing
                 !:      dey
                         bne !-
-                        dex  
+                        dex
                         bne !-
-                        
+
                         tax                     // Get flash count from stack
                         dex                     // Decrement flash counter
                         beq endLoopDelay        // Done flashing? Long pause
@@ -255,7 +528,7 @@ memBankTest: {
                         // Makes it clear when sequence repeats
                         ldx #$00
                         ldy #$00
-                        
+
                         // Four nested 256x256 loops for long delay
                 !:      dey
                         bne !-
@@ -273,7 +546,7 @@ memBankTest: {
                         bne !-
                         dex
                         bne !-
-                        
+
                         tsx                     // Restore flash count
                         jmp flashLoop           // Repeat sequence forever
         }
