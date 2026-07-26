@@ -26,7 +26,7 @@ KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
 VERSION ?= 2.0.0
 
 # Phony targets
-.PHONY: all build clean run debug help check-tools test release check version test-mode
+.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking
 
 # Default target
 all: build
@@ -97,6 +97,28 @@ test-mode: check-tools $(BUILD_PATH)
 	@echo ""
 	@echo "Note: No source files modified - test mode uses compile-time flag"
 
+# Build with walking bits test mode enabled (simulates RAM failure in phase 4)
+# Separate from test-mode: an $AA fault halts the test before the walking bits
+# phase runs, so exercising that handler needs a build where AA/55/PRN pass.
+test-mode-walking: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in WALKING BITS TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL the Low RAM walking bits test!"
+	@echo "Expected: BAD message with U21 (bit 0) marked in the chip diagram"
+	@echo ""
+	@echo "Compiling with TEST_MODE_WALKING_ENABLED defined..."
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_WALKING_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@echo "Converting to cartridge format..."
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@echo "Creating binary for EPROM..."
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo ""
+	@echo "WALKING BITS TEST MODE build complete!"
+	@echo "This build exercises the walking bits failure handler."
+	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
@@ -157,7 +179,8 @@ help:
 	@echo "  clean        - Remove all build artifacts"
 	@echo ""
 	@echo "Development Targets:"
-	@echo "  test-mode    - Build with simulated RAM failure (Low RAM U21 chip)"
+	@echo "  test-mode    - Build with simulated RAM failure (Low RAM \$$AA phase, U21 chip)"
+	@echo "  test-mode-walking - Build with simulated RAM failure (Low RAM walking bits phase, U21 chip)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
 	@echo "  release      - Create release package (v$(VERSION))"

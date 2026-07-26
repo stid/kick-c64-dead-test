@@ -7,12 +7,21 @@
 
 //=============================================================================
 // TEST MODE CONFIGURATION
-// Enable this to simulate a RAM failure for validation testing
-// When enabled, simulates a bit 0 (U21 chip) failure in the $AA pattern test
+// Simulates a RAM failure for validation testing. Each flag injects a bit 0
+// (U21 chip) fault into a different phase, so each failure path can be
+// exercised independently:
 //
-// Usage: Build with 'make test-mode' (passes -define TEST_MODE_ENABLED from command line)
+//   TEST_MODE_ENABLED          - fault in the $AA phase, exercises testFailed_AA
+//   TEST_MODE_WALKING_ENABLED  - fault in the walking bits phase, exercises
+//                                testFailed_Walking
+//
+// Two flags are needed because phases run in order: an $AA fault halts the
+// test before the walking bits phase is ever reached, so the walking handler
+// can only be exercised by a build that leaves the earlier phases passing.
+//
+// Usage: 'make test-mode' or 'make test-mode-walking' (each passes the matching
+// -define flag from the command line). No source files are modified.
 //=============================================================================
-// Note: TEST_MODE_ENABLED is defined via -define flag when building test mode
 
         * = * "low ram test"
 
@@ -241,9 +250,17 @@ lowRamTest: {
                 ldy #$00
         verifyWalkingLoop:
                 lda $0200,y
+#if TEST_MODE_WALKING_ENABLED
+                // TEST MODE: Simulate bit 0 (U21 chip) failure
+                eor #$01                        // Flip bit 0 to simulate failure
+#endif
                 cmp MemTestPattern,x
                 bne !fail+
                 lda $0300,y
+#if TEST_MODE_WALKING_ENABLED
+                // TEST MODE: Simulate bit 0 (U21 chip) failure
+                eor #$01                        // Flip bit 0 to simulate failure
+#endif
                 cmp MemTestPattern,x
                 bne !fail+
                 iny

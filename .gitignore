@@ -8,6 +8,7 @@
 # Build outputs
 bin/
 releases/
+screenshots/
 *.prg
 *.crt
 *.bin

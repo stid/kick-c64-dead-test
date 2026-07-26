@@ -1,14 +1,20 @@
 #!/bin/bash
 # TEST_MODE Validation Script
 #
-# Validates that TEST_MODE correctly simulates a U21 (bit 0) RAM failure
-# in the Low RAM test and that the diagnostic properly identifies it.
+# Validates that TEST_MODE builds correctly simulate a U21 (bit 0) RAM failure
+# in the Low RAM test and that the diagnostic identifies the failing chip.
 #
-# Expected behavior:
-# - Build with TEST_MODE_ENABLED preprocessor flag
-# - Low RAM test intentionally fails at bit 0
-# - Screen should show "BAD" message for Low RAM test
-# - Chip diagram should highlight U21 (bit 0 failure)
+# Two builds are validated, because test phases run in order and the first
+# failing phase halts the test:
+#
+#   test-mode          -> fault in the $AA phase       -> testFailed_AA
+#   test-mode-walking  -> fault in the walking bits    -> testFailed_Walking
+#
+# Without the second build the walking bits handler is never executed, which
+# is how a bug that made it report no failing chip at all went unnoticed.
+#
+# Expected on screen for both: "LOW RAM  BAD" with U21 marked in the chip
+# diagram (the injected fault is bit 0, which is U21).
 
 set -e
 
@@ -23,7 +29,7 @@ echo "🧪 TEST_MODE Validation"
 echo "======================="
 echo
 echo "This test validates that the diagnostic correctly detects"
-echo "simulated hardware failures using TEST_MODE_ENABLED."
+echo "simulated hardware failures using the TEST_MODE build flags."
 echo
 
 # Check if VICE is installed
@@ -43,128 +49,125 @@ else
     echo "   (may not work in CI environments)"
 fi
 
-echo
-
-# Build with TEST_MODE
-echo -e "${BLUE}📦 Building with TEST_MODE_ENABLED...${NC}"
-if ! make clean test-mode > /tmp/test-mode-build.log 2>&1; then
-    echo -e "${RED}❌ Build failed${NC}"
-    cat /tmp/test-mode-build.log
-    exit 1
+# VICE is a GTK application and aborts if it cannot find GSettings schemas.
+# Homebrew installs them outside the default search path, so point at them
+# when they are present and the caller has not already set the variable.
+if [ -z "$GSETTINGS_SCHEMA_DIR" ] && [ -f /opt/homebrew/share/glib-2.0/schemas/gschemas.compiled ]; then
+    export GSETTINGS_SCHEMA_DIR=/opt/homebrew/share/glib-2.0/schemas
+    echo "✓ Using Homebrew GSettings schemas"
 fi
-echo "✓ Build successful"
+
 echo
 
-# Verify cartridge exists
-if [ ! -f bin/dead-test.crt ]; then
-    echo -e "${RED}❌ Cartridge file not found: bin/dead-test.crt${NC}"
-    exit 1
-fi
-echo "✓ Cartridge file exists"
-echo
+SCREENSHOTS_CAPTURED=0
+MODES_RUN=0
 
-# Run VICE in headless mode
-echo -e "${BLUE}🖥️  Running in VICE (headless)...${NC}"
-echo "   Waiting for Low RAM test to execute (~15 seconds)..."
-echo
+# Screenshots must live outside bin/, because each mode runs "make clean" and
+# that removes bin/ entirely - which would delete the previous mode's output.
+SHOT_DIR="screenshots"
+mkdir -p "$SHOT_DIR"
 
-# Run for 20 seconds to ensure Low RAM test completes
-# The black screen (Memory Bank Test) takes ~10 seconds
-# Then Zero Page, Stack Page, and Low RAM tests run
-# We need to capture the moment when Low RAM test fails
+# run_mode <make-target> <human label> <screenshot path>
+run_mode() {
+    local target="$1"
+    local label="$2"
+    local shot="$3"
 
-SCREENSHOT="bin/test-mode-screenshot.png"
-rm -f "$SCREENSHOT"
+    MODES_RUN=$((MODES_RUN + 1))
 
-# Calculate cycles: ~985,248 cycles/sec * 20 seconds = ~20 million cycles
-# Using -limitcycles for clean exit and screenshot capture
-# -confirmonexit: 0 = don't confirm exit
-$XVFB_CMD x64sc \
-    -default \
-    -cartcrt bin/dead-test.crt \
-    -warp \
-    -limitcycles 20000000 \
-    -confirmonexit 0 \
-    -exitscreenshot "$SCREENSHOT" \
-    > /tmp/vice-output.log 2>&1 || true
-
-# Check if screenshot was created
-if [ ! -f "$SCREENSHOT" ]; then
-    echo -e "${YELLOW}⚠️  Screenshot not created${NC}"
-    echo "VICE screenshot functionality may not be available in this environment."
-    echo "This is expected in headless CI environments with certain VICE versions."
-    echo
-    echo "However, the build succeeded and TEST_MODE compiled correctly,"
-    echo "which validates the preprocessor flag and failure simulation code."
-    if [ -f /tmp/vice-output.log ]; then
-        echo
-        echo "VICE output (first 20 lines):"
-        head -20 /tmp/vice-output.log
+    echo -e "${BLUE}📦 Building: $label ($target)${NC}"
+    if ! make clean "$target" > "/tmp/${target}-build.log" 2>&1; then
+        echo -e "${RED}❌ Build failed for $target${NC}"
+        cat "/tmp/${target}-build.log"
+        exit 1
     fi
+    echo "✓ Build successful"
+
+    if [ ! -f bin/dead-test.crt ]; then
+        echo -e "${RED}❌ Cartridge file not found: bin/dead-test.crt${NC}"
+        exit 1
+    fi
+    echo "✓ Cartridge file exists"
+
+    echo -e "${BLUE}🖥️  Running $label in VICE...${NC}"
+    echo "   ~25s of emulated time (black screen memory bank test alone is ~10s)"
+
+    rm -f "$shot"
+
+    # -limitcycles gives a clean exit; ~985,248 cycles/sec, so 25M ≈ 25 seconds.
+    # NOTE: +confirmonexit, not "-confirmonexit 0". It is a boolean flag with no
+    # value - passing "0" made VICE treat it as a positional argument and silently
+    # discard every option after it, including -exitscreenshot. That is why this
+    # script used to never produce a screenshot.
+    $XVFB_CMD x64sc \
+        -default \
+        -cartcrt bin/dead-test.crt \
+        -warp \
+        -limitcycles 25000000 \
+        +confirmonexit \
+        -exitscreenshot "$shot" \
+        > "/tmp/vice-${target}.log" 2>&1 || true
+
+    if [ ! -f "$shot" ]; then
+        echo -e "${YELLOW}⚠️  No screenshot produced for $label${NC}"
+        echo "   Runtime behavior was NOT validated for this mode."
+        if [ -f "/tmp/vice-${target}.log" ]; then
+            echo "   VICE output (first 10 lines):"
+            sed 's/^/     /' "/tmp/vice-${target}.log" | head -10
+        fi
+        echo
+        return 0
+    fi
+
+    if ! file "$shot" | grep -q "PNG image data"; then
+        echo -e "${RED}❌ Screenshot for $label is not a valid PNG${NC}"
+        file "$shot"
+        exit 1
+    fi
+
+    local size
+    size=$(wc -c < "$shot")
+    if [ "$size" -lt 1000 ]; then
+        echo -e "${RED}❌ Screenshot for $label is implausibly small ($size bytes)${NC}"
+        echo "   VICE likely did not render the emulated screen."
+        exit 1
+    fi
+
+    SCREENSHOTS_CAPTURED=$((SCREENSHOTS_CAPTURED + 1))
+    echo -e "${GREEN}✓ Screenshot captured: $shot ($size bytes)${NC}"
     echo
+}
+
+run_mode test-mode         "\$AA phase failure"   "$SHOT_DIR/test-mode-aa.png"
+run_mode test-mode-walking "walking bits failure" "$SHOT_DIR/test-mode-walking.png"
+
+echo "======================="
+echo
+
+if [ "$SCREENSHOTS_CAPTURED" -eq "$MODES_RUN" ]; then
     echo -e "${GREEN}✅ TEST_MODE validation PASSED${NC}"
     echo
     echo "Summary:"
-    echo "  ✓ Built successfully with TEST_MODE_ENABLED"
-    echo "  ✓ VICE loaded and executed the test"
-    echo "  ⚠️ Screenshot not captured (CI environment limitation)"
+    echo "  ✓ Both TEST_MODE builds compiled"
+    echo "  ✓ Both ran in VICE and rendered a screen"
+    echo "  ✓ Screenshots captured for visual inspection"
+else
+    echo -e "${YELLOW}⚠️  TEST_MODE validation INCOMPLETE${NC}"
     echo
-    echo "Note: Screenshot functionality requires specific VICE configuration"
-    echo "      or may not be supported in headless environments."
-    echo "      The build validation is the primary success criterion."
-    exit 0
+    echo "Summary:"
+    echo "  ✓ Both TEST_MODE builds compiled"
+    echo "  ⚠️ Screenshots captured for $SCREENSHOTS_CAPTURED of $MODES_RUN modes"
+    echo
+    echo "  The builds are valid but their runtime output was not observed."
+    echo "  Treat this as a build check only, not a behavioral check."
 fi
 
-echo "✓ Screenshot captured: $SCREENSHOT"
 echo
-
-# Analyze screenshot (basic validation)
-echo -e "${BLUE}🔍 Analyzing screenshot...${NC}"
-
-# Check file size (should be reasonable for a valid PNG)
-FILE_SIZE=$(wc -c < "$SCREENSHOT")
-if [ "$FILE_SIZE" -lt 1000 ]; then
-    echo -e "${YELLOW}⚠️  Screenshot file is very small ($FILE_SIZE bytes)${NC}"
-    echo "   This might indicate VICE didn't render properly."
-fi
-
-# Basic PNG validation
-if ! file "$SCREENSHOT" | grep -q "PNG image data"; then
-    echo -e "${RED}❌ Screenshot is not a valid PNG file${NC}"
-    file "$SCREENSHOT"
-    exit 1
-fi
-
-echo "✓ Screenshot is valid PNG"
+echo "Manual verification (the part no automated check here covers):"
+echo "  Open the screenshots and confirm each shows:"
+echo "    - \"LOW RAM\" followed by \"BAD\""
+echo "    - \"BAD\" marked next to U21 in the chip diagram"
+echo "  An empty chip diagram means the failing chip was not identified."
 echo
-
-# Extract image dimensions and basic info
-IMG_INFO=$(file "$SCREENSHOT")
-echo "📊 Image info: $IMG_INFO"
-echo
-
-# We can't easily parse screen RAM from the screenshot without OCR
-# or image processing, but we can verify basic conditions:
-# 1. Screenshot was created (indicates VICE ran)
-# 2. File size is reasonable (indicates rendering occurred)
-# 3. Valid PNG format
-
-echo -e "${GREEN}✅ TEST_MODE validation PASSED${NC}"
-echo
-echo "Summary:"
-echo "  ✓ Built successfully with TEST_MODE_ENABLED"
-echo "  ✓ VICE loaded and executed the test"
-echo "  ✓ Screenshot captured at test execution"
-echo "  ✓ Image file is valid"
-echo
-echo "Manual verification recommended:"
-echo "  - View screenshot: $SCREENSHOT"
-echo "  - Verify \"BAD\" message appears for LOW RAM test"
-echo "  - Verify U21 chip is highlighted in chip diagram"
-echo "  - Expected: Bit 0 failure (U21) in Low RAM test"
-echo
-echo "Note: Full automated verification would require OCR or"
-echo "      memory dump analysis. Current test validates basic"
-echo "      execution success."
 
 exit 0
