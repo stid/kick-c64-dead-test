@@ -297,7 +297,7 @@ lowRamTest: {
                 sta VIDEO_RAM+$ae
                 lda #$14                        // Screen code for "T"
                 sta VIDEO_RAM+$af
-                jsr UFailed                     // Show which bits failed
+                jmp UFailed                     // Show which bits failed (never returns)
 
         testFailed_55:
                 // $55 pattern test failed - stuck bit
@@ -310,7 +310,7 @@ lowRamTest: {
                 sta VIDEO_RAM+$ae
                 lda #$14                        // Screen code for "T"
                 sta VIDEO_RAM+$af
-                jsr UFailed                     // Show which bits failed
+                jmp UFailed                     // Show which bits failed (never returns)
 
         testFailed_PRN:
                 // PRN sequence test failed - address bus issue
@@ -335,5 +335,5 @@ lowRamTest: {
                 sta VIDEO_RAM+$ae
                 lda #$04                        // Screen code for "D"
                 sta VIDEO_RAM+$af
-                jsr UFailed                     // Show which chip failed
+                jmp UFailed                     // Show which chip failed (never returns)
 }

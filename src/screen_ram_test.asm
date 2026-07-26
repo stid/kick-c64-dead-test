@@ -92,5 +92,5 @@ screenRamTest: {
                 sta VIDEO_RAM+$d7
                 
                 // Identify failed chip and halt
-                jsr UFailed
+                jmp UFailed             // Never returns (dead loop)
 }
