@@ -17,6 +17,10 @@ echo
 MAKEFILE_VERSION=$(grep "^VERSION ?=" makefile | sed 's/VERSION ?= //')
 echo "📄 makefile: $MAKEFILE_VERSION"
 
+# Extract version from the VERSION file
+VERSION_FILE_VERSION=$(cat VERSION)
+echo "📄 VERSION: $VERSION_FILE_VERSION"
+
 # Extract version from README.md badge
 README_VERSION=$(grep "version-.*-blue" readme.md | sed -E 's/.*version-([0-9.]+)-blue.*/\1/')
 echo "📄 README.md badge: $README_VERSION"
@@ -33,6 +37,11 @@ echo
 
 # Check if all versions match
 VERSIONS_MATCH=true
+
+if [ "$MAKEFILE_VERSION" != "$VERSION_FILE_VERSION" ]; then
+    echo -e "${RED}❌ Version mismatch: makefile ($MAKEFILE_VERSION) != VERSION ($VERSION_FILE_VERSION)${NC}"
+    VERSIONS_MATCH=false
+fi
 
 if [ "$MAKEFILE_VERSION" != "$README_VERSION" ]; then
     echo -e "${RED}❌ Version mismatch: makefile ($MAKEFILE_VERSION) != README.md ($README_VERSION)${NC}"
