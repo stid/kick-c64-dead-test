@@ -113,7 +113,10 @@ jobs:
       run: |
         # Run VICE in headless mode for a short time to verify it loads
         # Using -limitcycles for clean exit (~985,248 cycles/sec * 10 sec = 10M cycles)
-        xvfb-run -a x64sc -default -cartcrt bin/dead-test.crt -warp -limitcycles 10000000 -confirmonexit 0 -exitscreenshot bin/test-screenshot.png || true
+        # NOTE: +confirmonexit, not "-confirmonexit 0". It takes no value, and the
+        # stray "0" was parsed as a positional argument, making VICE discard every
+        # option after it - including -exitscreenshot.
+        xvfb-run -a x64sc -default -cartcrt bin/dead-test.crt -warp -limitcycles 10000000 +confirmonexit -exitscreenshot bin/test-screenshot.png || true
 
         # Check if screenshot was created (indicates successful load)
         if [ -f bin/test-screenshot.png ]; then
