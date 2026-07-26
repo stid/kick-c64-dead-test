@@ -337,38 +337,57 @@ memBankTest: {
                 LongDelayLoop(0,0)
 
                 // Verify pattern
-                lda MemTestPattern,x    // Get expected value
+                // Read the ACTUAL value into A, then compare against the expected
+                // pattern. This ordering matters: on failure the accumulator must
+                // hold the value read from RAM so memTestFailed_Walking can XOR it
+                // against the expected pattern to isolate the failing bits.
+                // (Same ordering as the PRN verify loop above.)
                 ldy #$00
         verifyWalkingLoop:
-                cmp $0100,y
+                lda $0100,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0200,y
+                lda $0200,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0300,y
+                lda $0300,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0400,y
+                lda $0400,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0500,y
+                lda $0500,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0600,y
+                lda $0600,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0700,y
+                lda $0700,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0800,y
+                lda $0800,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0900,y
+                lda $0900,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0a00,y
+                lda $0a00,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0b00,y
+                lda $0b00,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0c00,y
+                lda $0c00,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0d00,y
+                lda $0d00,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0e00,y
+                lda $0e00,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0f00,y
+                lda $0f00,y
+                cmp MemTestPattern,x
                 bne !fail+
                 iny
                 bne verifyWalkingLoop

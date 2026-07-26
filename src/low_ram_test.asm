@@ -235,12 +235,16 @@ lowRamTest: {
 
                 ShortDelayLoop($3f)
 
-                lda MemTestPattern,x
+                // Read the ACTUAL value into A, then compare against the expected
+                // pattern, so testFailed_Walking receives the value read from RAM
+                // and can XOR it against the expected pattern.
                 ldy #$00
         verifyWalkingLoop:
-                cmp $0200,y
+                lda $0200,y
+                cmp MemTestPattern,x
                 bne !fail+
-                cmp $0300,y
+                lda $0300,y
+                cmp MemTestPattern,x
                 bne !fail+
                 iny
                 bne verifyWalkingLoop

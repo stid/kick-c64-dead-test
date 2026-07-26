@@ -139,10 +139,13 @@ zeroPageTest: {
 
                 LongDelayLoop(0,0)
 
-                lda MemTestPattern,x
+                // Read the ACTUAL value into A, then compare against the expected
+                // pattern, so zeroPageFailed_Walking receives the value read from
+                // RAM and can XOR it against the expected pattern.
                 ldy #$12
         verifyWalkingLoop:
-                cmp $0000,y
+                lda $0000,y
+                cmp MemTestPattern,x
                 bne !fail+
                 iny
                 bne verifyWalkingLoop
