@@ -6,7 +6,7 @@ Commodore 64 hardware diagnostic tool running as Ultimax cartridge ($E000-$FFFF)
 ## Quick Start
 ```bash
 make         # Build .prg, .crt, and .bin files
-make run     # Build and launch in VICE emulator
+make run     # Launch the currently built cartridge in VICE (make build-and-run to do both)
 make debug   # Build and run with VICE monitor
 make clean   # Remove all build artifacts
 make help    # Show all available targets

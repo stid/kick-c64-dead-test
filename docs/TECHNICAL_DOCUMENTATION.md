@@ -20,7 +20,7 @@ Tests are ordered from most critical to least critical:
 
 1. **Pre-display tests** (black screen): Basic RAM functionality
 2. **Foundation tests**: Zero page and stack (still no JSR/RTS)
-3. **Low RAM completeness**: Test previously untested $0200-$03FF
+3. **Low RAM completeness**: Dedicated test for $0200-$03FF (previously only covered by the blind bank test)
 4. **Display tests**: Screen and color RAM
 5. **Extended tests**: General RAM, fonts, sound
 
@@ -136,7 +136,7 @@ The test differentiates between chip failures and bus failures:
 
 ### 4. Low RAM Test ($0200-$03FF)
 
-**Purpose**: Test the previously untested 512 bytes between stack and screen RAM
+**Purpose**: Dedicated test for the 512 bytes between stack and screen RAM, which previously had no on-screen test of their own (only the blind boot-time bank test covered them)
 
 **Test Pattern Philosophy** (suggested by [Sven Petersen](https://github.com/svenpetersen1965)):
 
@@ -179,7 +179,7 @@ When Low RAM test fails, different error messages indicate the failure type:
 
 This differentiation helps diagnose whether the problem is a failed RAM chip or an address bus fault.
 
-**Completeness**: With this test, 100% of Ultimax-accessible RAM is now tested ($0000-$0FFF)
+**Completeness**: With this test, all Ultimax-accessible RAM ($0000-$0FFF) has a dedicated test. The only untested bytes are $00-$01 (the 6510 processor port registers, not RAM) and $02-$11 (reserved for the test's own zero page variables)
 
 ### 5. Screen RAM Test ($0400-$07FF)
 

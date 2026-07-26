@@ -12,7 +12,7 @@ A comprehensive hardware diagnostic tool for the Commodore 64, designed to test 
 
 ## Why This Version?
 
-- ✅ **Complete RAM coverage** - New Low RAM test covers previously untested $0200-$03FF region
+- ✅ **Complete RAM coverage** - New dedicated Low RAM test for $0200-$03FF, previously covered only by the blind boot-time bank test
 - ✅ **Enhanced visual feedback** - Color reference bar and border cycling
 - ✅ **SID filter test** - Detects analog filter failures missed by other tests
 - ✅ **Modern codebase** - Modular structure with extensive documentation
@@ -29,7 +29,7 @@ cd kick-c64-dead-test
 # Build the diagnostic
 make
 
-# Run in VICE emulator
+# Run the built cartridge in VICE emulator
 make run
 ```
 
@@ -59,7 +59,8 @@ A convenient makefile is included to simplify the compilation. It will generate 
 
 ```bash
 make              # Build the project
-make run          # Build and run in VICE emulator
+make run          # Run the currently built cartridge in VICE (build first)
+make build-and-run # Build and run in one step
 make clean        # Clean all build artifacts
 make help         # Show all available commands
 ```
@@ -93,7 +94,7 @@ The original test logic and sequence remain untouched where applicable. Below ar
 
 ### New Tests (Not in Original)
 
-- **Low RAM Test** (v1.3.0) - Tests the previously untested $0200-$03FF memory region (512 bytes between stack and screen RAM). Test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965). Uses four test patterns:
+- **Low RAM Test** (v1.3.0) - Dedicated test for the $0200-$03FF memory region (512 bytes between stack and screen RAM), which previously had no on-screen test of its own (only the blind boot-time bank test covered it). Test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965). Uses four test patterns:
   - `$AA` pattern (10101010) - Detects stuck-high bits on even positions
   - `$55` pattern (01010101) - Detects stuck-low bits on odd positions
   - 247-byte PRN sequence - Detects address bus problems and page confusion (prime-like length ensures non-alignment with 256-byte pages to catch mirrored or crossed address lines)

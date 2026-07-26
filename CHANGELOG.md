@@ -136,6 +136,31 @@ output goes unobserved.
 `VERSION` still read 1.3.0 after the 2.0.0 bump. `check-version.sh` did not read
 that file, so CI never caught it. Synced to 2.0.0 and added to the check.
 
+#### Memory Bank Test PRN phase could not see cross-page faults
+The PRN write loop stored the *same* byte to all 15 pages at each offset, so
+every page held identical contents and a swapped or mirrored high address line
+(A8-A11) could never produce a mismatch — exactly the fault class the phase
+claims to catch. Each page now reads the PRN table through a staggered base
+(+0 for $01xx up to +14 for $0Fxx, backed by a 14-byte contiguous extension),
+so every page holds a different sequence and page confusion is detectable.
+
+#### RAM Test reported "BUS" it could never prove, and dropped its diagnosis
+The byte-by-byte test writes and immediately reads back through the same
+address, so an aliased write reads back through the same alias — a bus fault
+is unobservable there, and its PRN mismatch is really a pattern-sensitive data
+fault. It now reports "BIT" like the other data patterns. Its failure handlers
+also computed the failing-bit mask into X and then discarded it; they now mark
+the failed chip(s) in the motherboard diagram (via a returning `UMarkChips`)
+before continuing with the remaining tests.
+
+#### Multi-bit failures flashed the wrong chip
+`memFailureFlash` tested "exactly this bit set" per bank and fell through to
+bank 1/U12 for **any** multi-bit difference, blaming a chip that may be fine.
+It now flashes the bank of the lowest set bit, so at least one genuinely
+failing chip is always reported. The flash loop also recovered its count from
+the accumulator only by accident of `LongDelayLoop`'s TXA/TAX save/restore;
+the count now stays in X explicitly.
+
 ### 📊 Impact & Benefits
 
 #### For Users
@@ -191,7 +216,7 @@ The differentiation between stuck bits, address bus faults, and chip failures is
 ## [1.3.0] - 2025
 
 ### Added
-- **Low RAM Test** - New test module for previously untested $0200-$03FF region (test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965))
+- **Low RAM Test** - New dedicated test module for the $0200-$03FF region, previously covered only by the blind boot-time bank test (test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965))
   - Tests 512 bytes between stack page and screen RAM
   - Uses four-phase testing approach:
     1. $AA pattern (10101010) - detects even-bit stuck failures → "BIT" error

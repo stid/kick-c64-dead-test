@@ -173,7 +173,7 @@ help:
 	@echo "  all          - Build the project (default)"
 	@echo "  build        - Compile and create .prg, .crt, and .bin files"
 	@echo "  run          - Run currently built cartridge in VICE emulator"
-	@echo "  build-and-run- Build and run in one step"
+	@echo "  build-and-run - Build and run in one step"
 	@echo "  debug        - Run with VICE monitor (no rebuild)"
 	@echo "  test         - Run automated test in VICE"
 	@echo "  clean        - Remove all build artifacts"
