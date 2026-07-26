@@ -29,22 +29,22 @@ def generate_prn_pattern(seed=0x42, length=247):
 
     return pattern
 
-# Parse data.asm to extract PrnTestPattern
-def extract_prn_from_asm(filename='src/data.asm'):
-    """Extract PrnTestPattern bytes from data.asm"""
+# Parse data.asm to extract a labeled .byte table
+def extract_table_from_asm(label, filename='src/data.asm'):
+    """Extract the bytes of a labeled table from data.asm"""
     try:
         with open(filename, 'r') as f:
             content = f.read()
 
-        # Find PrnTestPattern section
+        # Find the labeled section (stops at the next blank line)
         pattern_match = re.search(
-            r'PrnTestPattern:.*?\.byte\s+(.*?)(?=\n\n|\.encoding|strAbout|$)',
+            label + r':.*?\.byte\s+(.*?)(?=\n\n|\.encoding|strAbout|$)',
             content,
             re.DOTALL
         )
 
         if not pattern_match:
-            print("❌ Could not find PrnTestPattern in data.asm")
+            print(f"❌ Could not find {label} in data.asm")
             return None
 
         # Extract all .byte lines
@@ -54,7 +54,7 @@ def extract_prn_from_asm(filename='src/data.asm'):
         hex_pattern = re.findall(r'\$([0-9a-fA-F]{2})', byte_lines)
 
         if not hex_pattern:
-            print("❌ Could not parse hex bytes from PrnTestPattern")
+            print(f"❌ Could not parse hex bytes from {label}")
             return None
 
         # Convert to integers
@@ -84,7 +84,7 @@ def main():
 
     # Extract actual pattern from data.asm
     print("📄 Extracting PrnTestPattern from src/data.asm...")
-    actual = extract_prn_from_asm()
+    actual = extract_table_from_asm('PrnTestPattern')
 
     if actual is None:
         sys.exit(1)
@@ -124,6 +124,26 @@ def main():
 
     # Success
     print("   ✓ All 247 bytes match!")
+    print()
+
+    # Validate the extension table used by memBankTest's staggered per-page
+    # reads: it must repeat the first 14 bytes of the pattern and sit right
+    # after it, so PrnTestPattern+base,x (base 0-14, x 0-246) stays in bounds.
+    print("📄 Extracting PrnTestPatternExt from src/data.asm...")
+    extension = extract_table_from_asm('PrnTestPatternExt')
+
+    if extension is None:
+        sys.exit(1)
+
+    if len(extension) != 14:
+        print(f"❌ Extension length mismatch: expected 14 bytes, got {len(extension)}")
+        sys.exit(1)
+
+    if extension != expected[:14]:
+        print("❌ PrnTestPatternExt does not repeat the first 14 PRN bytes")
+        sys.exit(1)
+
+    print("   ✓ Extension repeats the first 14 PRN bytes")
     print()
     print("✅ PRN pattern validation PASSED")
     print()

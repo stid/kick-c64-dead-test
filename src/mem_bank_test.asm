@@ -202,27 +202,47 @@ memBankTest: {
                 //=============================================================
                 // PHASE 3: Write and verify PRN sequence
                 // PRN is 247 bytes, so it repeats: [0-246],[0-8] for 256 bytes
+                //
+                // Each page reads the table through a different base address
+                // (PrnTestPattern+0 for $0100 up to +14 for $0F00), so every
+                // page holds a DIFFERENT byte sequence. Without the stagger all
+                // 15 pages would be identical and a swapped or mirrored high
+                // address line (A8-A11) could never produce a mismatch.
+                // The 14-byte PrnTestPatternExt keeps base+index in bounds.
                 //=============================================================
                 ldx #$00                // PRN pattern index
                 ldy #$00                // Page offset
 
         writePRNLoop:
-                lda PrnTestPattern,x    // Get PRN byte
-
+                lda PrnTestPattern,x    // Page $01xx: PRN offset 0
                 sta $0100,y
+                lda PrnTestPattern+1,x  // Page $02xx: PRN offset 1
                 sta $0200,y
+                lda PrnTestPattern+2,x
                 sta $0300,y
+                lda PrnTestPattern+3,x
                 sta $0400,y
+                lda PrnTestPattern+4,x
                 sta $0500,y
+                lda PrnTestPattern+5,x
                 sta $0600,y
+                lda PrnTestPattern+6,x
                 sta $0700,y
+                lda PrnTestPattern+7,x
                 sta $0800,y
+                lda PrnTestPattern+8,x
                 sta $0900,y
+                lda PrnTestPattern+9,x
                 sta $0a00,y
+                lda PrnTestPattern+10,x
                 sta $0b00,y
+                lda PrnTestPattern+11,x
                 sta $0c00,y
+                lda PrnTestPattern+12,x
                 sta $0d00,y
+                lda PrnTestPattern+13,x
                 sta $0e00,y
+                lda PrnTestPattern+14,x // Page $0Fxx: PRN offset 14
                 sta $0f00,y
 
                 // Increment PRN index with wrap at 247
@@ -236,7 +256,7 @@ memBankTest: {
 
                 LongDelayLoop(0,0)
 
-                // Verify PRN pattern
+                // Verify PRN pattern (same per-page stagger as the write)
                 ldx #$00
                 ldy #$00
         verifyPRNLoop:
@@ -244,49 +264,49 @@ memBankTest: {
                 cmp PrnTestPattern,x
                 bne !fail+
                 lda $0200,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+1,x
                 bne !fail+
                 lda $0300,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+2,x
                 bne !fail+
                 lda $0400,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+3,x
                 bne !fail+
                 jmp !continue+
         !fail:  jmp memTestFailed_PRN
         !continue:
                 lda $0500,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+4,x
                 bne !fail-
                 lda $0600,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+5,x
                 bne !fail-
                 lda $0700,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+6,x
                 bne !fail-
                 lda $0800,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+7,x
                 bne !fail-
                 lda $0900,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+8,x
                 bne !fail-
                 lda $0a00,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+9,x
                 bne !fail-
                 lda $0b00,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+10,x
                 bne !fail-
                 lda $0c00,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+11,x
                 bne !fail-
                 lda $0d00,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+12,x
                 bne !fail-
                 lda $0e00,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+13,x
                 bne !fail-
                 lda $0f00,y
-                cmp PrnTestPattern,x
+                cmp PrnTestPattern+14,x
                 bne !fail-
 
                 // Increment PRN index with wrap at 247

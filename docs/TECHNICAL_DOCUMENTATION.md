@@ -47,6 +47,9 @@ Early tests (memory bank, zero page, stack) cannot use:
 3. **Phase 3 - 247-byte PRN sequence**: Detects address bus problems and page confusion
    - Prime-like length ensures non-alignment with 256-byte pages
    - Catches mirrored or crossed address lines that aligned patterns miss
+   - Each page reads the table through a different base offset (+0 for $01xx
+     up to +14 for $0Fxx), so every page holds a different byte sequence and
+     swapped or mirrored high address lines (A8-A11) produce a mismatch
 4. **Phase 4 - Walking bits** (16 patterns):
    - Walking ones: $01,$02,$04,$08,$10,$20,$40,$80
    - Walking zeros: $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F
@@ -56,7 +59,7 @@ Early tests (memory bank, zero page, stack) cannot use:
 
 1. Write AA pattern to all memory pages ($0100-$0FFF) simultaneously, delay, verify
 2. Write 55 pattern to all memory pages simultaneously, delay, verify
-3. Write repeating 247-byte PRN sequence across all memory pages, delay, verify
+3. Write repeating 247-byte PRN sequence with a per-page stagger, delay, verify
 4. For each walking bit pattern: write to all pages, delay, verify
 5. Each phase tests all 3840 bytes before moving to next phase
 

@@ -91,6 +91,14 @@ PrnTestPattern:
                 .byte $cb,$04,$cd,$26,$0f,$88,$91,$2a,$53,$0c,$55,$2e,$97,$90,$19,$32
                 .byte $db,$14,$dd,$36,$1f,$98,$a1
 
+// Extension: the first 14 PRN bytes repeated, contiguous with the table above.
+// memBankTest reads each page through a staggered base (PrnTestPattern+0 for
+// $0100 through PrnTestPattern+14 for $0F00) with index 0-246, so reads reach
+// up to PrnTestPattern+260. The extension keeps those reads equal to
+// PRN[(base+index) mod 247] without a runtime modulo.
+PrnTestPatternExt:
+                .byte $eb,$24,$ed,$46,$2f,$a8,$b1,$4a,$73,$2c,$75,$4e,$b7,$b0
+
 .encoding       "screencode_mixed"
 strAbout:       .text "c-64 dead test rev stid 2.0.0"
 strCount:       .text "count"
