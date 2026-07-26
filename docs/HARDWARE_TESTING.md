@@ -308,7 +308,10 @@ Plus **red "BAD" indicators** in the chip diagram box showing the specific chip 
 
 - **C64 Service Manual**: Complete schematics showing RAM chip locations
 - **Dead Test Source Code**: `src/low_ram_test.asm` shows exactly what's tested
-- **Software Test Mode**: Use `make test-mode` for testing without hardware risk
+- **Software Test Mode**: Use `make test-mode` (fault in the `$AA` phase) or
+  `make test-mode-walking` (fault in the walking bits phase) to exercise the
+  failure paths without hardware risk. Both simulate a bit 0 / U21 failure;
+  `scripts/test-mode-validation.sh` builds and runs each under VICE.
 - **Community Forums**: Share your testing results and ask questions
 
 ## Questions?

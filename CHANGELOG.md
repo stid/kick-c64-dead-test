@@ -95,6 +95,47 @@ Enhanced failure indication during black screen phase:
 - **Hardware testing guide** - Comprehensive real hardware testing documentation
 - **Enhanced comments** - Extensive methodology explanations in source
 
+### 🐛 Fixed Before Release
+
+#### Walking bits reported the wrong chip
+The walking bits verify loops held the *expected* pattern in the accumulator and
+used `cmp <memory>`, so at the failure branch the accumulator held
+`MemTestPattern[x]` while X was still the pattern index. The handlers then ran
+`eor MemTestPattern,x`, XORing a value with itself and always producing 0.
+
+- Memory Bank Test reached `memFailureFlash` with 0, fell through to `ldx #$08`,
+  and reported Bank 8 / U21 for **every** failure. On a dead machine the flash
+  count is the only diagnostic available, so this named the wrong chip with
+  full confidence.
+- Zero Page, Stack Page and Low RAM reached `UFailed` with 0, so `failCheck`
+  highlighted no chip at all: "BAD" over an empty chip diagram.
+
+Fixed by reading the actual value into the accumulator before comparing against
+the expected pattern (`lda <memory>` / `cmp MemTestPattern,x`) — the ordering the
+PRN loops and RAM Test already used. The AA/55/PRN handlers were already correct
+and are unchanged.
+
+#### TEST_MODE never exercised the walking bits path
+Fault injection existed only in the Low RAM `$AA` phase. Since phases run in
+order and the first failure halts the test, no build ever reached the walking
+bits handler, which is why the above went unnoticed. Added
+`TEST_MODE_WALKING_ENABLED` and a `make test-mode-walking` target that leaves
+AA/55/PRN passing so phase 4 fails.
+
+#### TEST_MODE validation never validated anything at runtime
+`test-mode-validation.sh` passed `-confirmonexit 0`, but `-confirmonexit` is a
+boolean flag negated as `+confirmonexit`. VICE parsed the stray `0` as a
+positional argument and silently discarded every option after it, including
+`-exitscreenshot`. No screenshot was ever produced, and the script reported
+PASSED on the missing-screenshot path. It now uses `+confirmonexit`, validates
+both TEST_MODE builds, writes screenshots outside `bin/` (which `make clean`
+removes between builds), and reports INCOMPLETE rather than PASSED when runtime
+output goes unobserved.
+
+#### Version file drift
+`VERSION` still read 1.3.0 after the 2.0.0 bump. `check-version.sh` did not read
+that file, so CI never caught it. Synced to 2.0.0 and added to the check.
+
 ### 📊 Impact & Benefits
 
 #### For Users
