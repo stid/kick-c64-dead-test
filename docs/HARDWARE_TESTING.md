@@ -192,6 +192,11 @@ Plus **red "BAD" indicators** in the chip diagram box showing the specific chip 
 - **BUS** = Address bus failure (PRN patterns) - no chip diagram, indicates crossed/shorted address lines
 - **BAD** = Specific chip failure (walking bits) - shows chip diagram
 
+Note: RAM TEST (the byte-by-byte test) never reports BUS - its single-address
+write/readback cannot observe bus faults, so a PRN mismatch there is reported
+as BIT. Unlike the other tests it also does not halt: it marks the chip
+diagram and lets the remaining tests run.
+
 ### Test Patterns and What They Detect
 
 **All RAM Tests** use four-phase pattern testing (Memory Bank, Zero Page, Stack Page, Low RAM):

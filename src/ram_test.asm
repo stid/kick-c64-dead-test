@@ -3,6 +3,7 @@
 #import "./mem_map.asm"
 #import "./macros.asm"
 #import "./zeropage_map.asm"
+#import "./u_failure.asm"
 
         * = * "ram test"
 
@@ -20,7 +21,11 @@
 // Test Patterns (applied byte-by-byte):
 //   1. $AA (10101010) - Detects stuck-low bits on odd positions
 //   2. $55 (01010101) - Detects stuck-high bits on even positions
-//   3. 247-byte PRN sequence - Detects address bus problems
+//   3. 247-byte PRN sequence - Extra pattern-sensitivity check (a varying,
+//      address-dependent value). NOTE: because each byte is written and read
+//      back through the SAME address, this phase cannot observe address bus
+//      faults - an aliased write reads back through the same alias. Bus
+//      detection is done by the multi-address PRN phases in the other tests.
 //   4. Walking ones/zeros - Identifies specific failing chips
 //
 // Memory Range: $0800-$0FFF (2KB)
@@ -41,7 +46,10 @@
 //          4. Move to next address only after all patterns pass
 //
 // On Success: Displays "OK" on screen
-// On Failure: Displays "BAD" and shows which bits failed via XOR result
+// On Failure: Displays "BIT" (data pattern) or "BAD" (walking bits), marks the
+//             failed chip(s) in the motherboard diagram via UMarkChips, and
+//             CONTINUES with the remaining tests (unlike the halting tests,
+//             byte-by-byte testing already pinpointed the failing address).
 //=============================================================================
 ramTest: {
                 // Display "RAM TEST" label on screen
@@ -165,7 +173,8 @@ ramTest: {
                 sta VIDEO_RAM+$126
                 lda #$14         // Screen code for "T"
                 sta VIDEO_RAM+$127
-                rts              // Return showing which bits failed
+                jsr UMarkChips   // Mark failed chip(s) in the diagram
+                rts              // Continue with remaining tests
 
         RamTestFailed_55:
                 eor #$55
@@ -177,17 +186,24 @@ ramTest: {
                 sta VIDEO_RAM+$126
                 lda #$14         // Screen code for "T"
                 sta VIDEO_RAM+$127
-                rts              // Return showing which bits failed
+                jsr UMarkChips   // Mark failed chip(s) in the diagram
+                rts              // Continue with remaining tests
 
         RamTestFailed_PRN:
-                // Display "BUS" - address bus failure
+                // A byte-by-byte immediate readback cannot observe a bus
+                // fault, so a mismatch here is a pattern-sensitive data
+                // fault - report it as "BIT" like the other data patterns.
+                eor PrnTestPattern,x    // X still holds the PRN index
+                tax
+                // Display "BIT" - pattern-sensitive bit failure
                 lda #$02         // Screen code for "B"
                 sta VIDEO_RAM+$125
-                lda #$15         // Screen code for "U"
+                lda #$09         // Screen code for "I"
                 sta VIDEO_RAM+$126
-                lda #$13         // Screen code for "S"
+                lda #$14         // Screen code for "T"
                 sta VIDEO_RAM+$127
-                rts              // Return (address bus issue, not chip)
+                jsr UMarkChips   // Mark failed chip(s) in the diagram
+                rts              // Continue with remaining tests
 
         RamTestFailed_Walking:
                 eor MemTestPattern,x
@@ -199,8 +215,9 @@ ramTest: {
                 sta VIDEO_RAM+$126
                 lda #$04         // Screen code for "D"
                 sta VIDEO_RAM+$127
-                // Note: Test continues rather than halting
-                // This allows checking if failure is isolated or widespread
-                // The XOR result in X register indicates which bits/chips failed
+                // Test continues rather than halting - byte-by-byte testing
+                // already pinpointed the address, and running the remaining
+                // tests shows whether the failure is isolated or widespread.
+                jsr UMarkChips   // Mark failed chip(s) in the diagram
                 rts
 }

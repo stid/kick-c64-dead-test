@@ -105,7 +105,13 @@
 // - Reduces code size while improving readability
 // - Ensures consistent failure display across all chips
 //=============================================================================
-UFailed: {
+//=============================================================================
+// Shared chip-marking sequence: checks every bit in X and displays "BAD" at
+// that chip's position in the motherboard diagram. Inlined twice below so the
+// halting entry point stays free of stack use (its pre-stack callers reach it
+// via JMP while the stack is still unverified).
+//=============================================================================
+.macro markFailedChips () {
         // Check U21 (bit 0) - Located at screen position $2a4
         failCheck(UNIT.U21, $2a4)
 
@@ -129,6 +135,20 @@ UFailed: {
 
         // Check U12 (bit 7) - Located at screen position $311
         failCheck(UNIT.U12, $0311)
+}
+
+//=============================================================================
+// Returning variant for tests that run AFTER the stack test and continue on
+// failure (currently ramTest): marks the failed chip(s) from X and returns,
+// leaving the diagram marks on screen while the remaining tests run.
+//=============================================================================
+UMarkChips: {
+        markFailedChips()
+        rts
+}
+
+UFailed: {
+        markFailedChips()
 
         //=============================================================================
         // INFINITE LOOP - CRITICAL SYSTEM FAILURE

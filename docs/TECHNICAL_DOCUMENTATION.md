@@ -303,14 +303,15 @@ The diagnostic maintains CIA timers for:
 4. Zero page test → Show OK/BAD
 5. Stack test → Show OK/BAD
 6. Enable JSR/RTS usage
-7. Screen RAM test → Show OK/BAD
-8. Color RAM test → Show OK/BAD
-9. General RAM test → Show OK/BAD
-10. Font test (no display)
-11. Sound test (audible)
-12. Filter test (audible sweep)
-13. Increment counter
-14. Clear screen and restart
+7. Low RAM test → Show OK/BAD
+8. Screen RAM test → Show OK/BAD
+9. Color RAM test → Show OK/BAD
+10. General RAM test → Show OK/BAD
+11. Font test (no display)
+12. Sound test (audible)
+13. Filter test (audible sweep)
+14. Increment counter
+15. Clear screen and restart
 ```
 
 ## Failure Handling
@@ -330,7 +331,7 @@ The diagnostic maintains CIA timers for:
 - NOT a chip failure
 - Infinite loop (system halted)
 
-**Other Test Failures** (Zero Page, Stack Page, Low RAM, Screen RAM, Color RAM, RAM Test):
+**Halting Test Failures** (Zero Page, Stack Page, Low RAM, Screen RAM, Color RAM):
 
 - Display "BIT", "BUS", or "BAD" at test location (depending on failure type):
   - **"BIT"** - Stuck bit failure (AA/55 patterns) - shows chip diagram
@@ -339,6 +340,14 @@ The diagnostic maintains CIA timers for:
 - Show failed chip ID in diagram (for BIT and BAD, not BUS)
 - Color failed chips red
 - Enter infinite loop (deadLoop)
+
+**RAM Test Failure** (byte-by-byte test, $0800-$0FFF):
+
+- Display "BIT" (data patterns, including PRN) or "BAD" (walking bits)
+- Mark failed chip(s) red in the diagram, then CONTINUE with remaining tests
+- Never reports "BUS": a single-address write/readback cannot observe a bus
+  fault (an aliased write reads back through the same alias), so a PRN
+  mismatch here is a pattern-sensitive data fault
 
 ## Memory Map
 
