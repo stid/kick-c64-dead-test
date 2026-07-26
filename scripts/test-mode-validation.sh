@@ -112,8 +112,8 @@ run_mode() {
         echo -e "${YELLOW}⚠️  No screenshot produced for $label${NC}"
         echo "   Runtime behavior was NOT validated for this mode."
         if [ -f "/tmp/vice-${target}.log" ]; then
-            echo "   VICE output (first 10 lines):"
-            sed 's/^/     /' "/tmp/vice-${target}.log" | head -10
+            echo "   VICE output (last 20 lines - errors print at the end):"
+            sed 's/^/     /' "/tmp/vice-${target}.log" | tail -20
         fi
         # In CI (REQUIRE_SCREENSHOT=1) a missing screenshot is a hard failure:
         # a green job must mean the runtime behavior was actually observed.

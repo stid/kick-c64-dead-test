@@ -102,7 +102,20 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y vice xvfb
-    
+
+    - name: Install C64 ROM images
+      run: |
+        # The Debian/Ubuntu vice package ships WITHOUT the copyrighted C64
+        # ROMs, so x64sc cannot boot the machine and every VICE step here
+        # silently produced nothing. Fetch them from the VICE source tree
+        # (pinned mirror tag) into the package's system data dir.
+        sudo mkdir -p /usr/share/vice/C64
+        for f in kernal-901227-03.bin basic-901226-01.bin chargen-901225-01.bin; do
+          sudo curl -sfL -o "/usr/share/vice/C64/$f" \
+            "https://raw.githubusercontent.com/VICE-Team/svn-mirror/r46189/vice/data/C64/$f"
+        done
+        ls -la /usr/share/vice/C64/
+
     - name: Verify cartridge format
       run: |
         # Use cartconv to verify the cartridge format
@@ -118,11 +131,13 @@ jobs:
         # option after it - including -exitscreenshot.
         xvfb-run -a x64sc -default -cartcrt bin/dead-test.crt -warp -limitcycles 10000000 +confirmonexit -exitscreenshot bin/test-screenshot.png || true
 
-        # Check if screenshot was created (indicates successful load)
+        # The screenshot is the proof the cartridge actually ran - without
+        # it this step verifies nothing, so its absence is a failure.
         if [ -f bin/test-screenshot.png ]; then
           echo "Dead Test loaded successfully in VICE"
         else
-          echo "Warning: Could not verify Dead Test loading"
+          echo "ERROR: no screenshot produced - cartridge run not verified"
+          exit 1
         fi
     
     - name: Upload test screenshot
@@ -167,6 +182,18 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y vice xvfb
+
+    - name: Install C64 ROM images
+      run: |
+        # See the identical step in the test job: the Debian/Ubuntu vice
+        # package ships without the C64 ROMs and x64sc cannot boot without
+        # them.
+        sudo mkdir -p /usr/share/vice/C64
+        for f in kernal-901227-03.bin basic-901226-01.bin chargen-901225-01.bin; do
+          sudo curl -sfL -o "/usr/share/vice/C64/$f" \
+            "https://raw.githubusercontent.com/VICE-Team/svn-mirror/r46189/vice/data/C64/$f"
+        done
+        ls -la /usr/share/vice/C64/
 
     - name: Run TEST_MODE validation
       run: |
