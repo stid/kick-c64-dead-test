@@ -130,7 +130,11 @@ positional argument and silently discarded every option after it, including
 PASSED on the missing-screenshot path. It now uses `+confirmonexit`, validates
 both TEST_MODE builds, writes screenshots outside `bin/` (which `make clean`
 removes between builds), and reports INCOMPLETE rather than PASSED when runtime
-output goes unobserved.
+output goes unobserved. In CI (`REQUIRE_SCREENSHOT=1`) a missing screenshot is
+now a hard failure. That strictness immediately exposed a second layer of the
+same problem: the Debian/Ubuntu `vice` package ships without the copyrighted
+C64 ROMs, so `x64sc` could never boot in CI at all — the workflow now installs
+kernal/basic/chargen from the VICE source mirror before running the emulator.
 
 #### Version file drift
 `VERSION` still read 1.3.0 after the 2.0.0 bump. `check-version.sh` did not read
