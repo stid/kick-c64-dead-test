@@ -115,6 +115,14 @@ run_mode() {
             echo "   VICE output (first 10 lines):"
             sed 's/^/     /' "/tmp/vice-${target}.log" | head -10
         fi
+        # In CI (REQUIRE_SCREENSHOT=1) a missing screenshot is a hard failure:
+        # a green job must mean the runtime behavior was actually observed.
+        # Locally it stays a soft warning so the script is still usable on
+        # setups where VICE cannot render.
+        if [ "${REQUIRE_SCREENSHOT:-0}" = "1" ]; then
+            echo -e "${RED}❌ REQUIRE_SCREENSHOT=1: missing screenshot is a failure${NC}"
+            exit 1
+        fi
         echo
         return 0
     fi
