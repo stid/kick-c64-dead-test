@@ -461,68 +461,21 @@ memBankTest: {
                 // Bit 1 = U9  (Bank 7)  Bit 5 = U11 (Bank 3)
                 // Bit 2 = U22 (Bank 6)  Bit 6 = U24 (Bank 2)
                 // Bit 3 = U10 (Bank 5)  Bit 7 = U12 (Bank 1)
-
-                // A contains XOR result (difference bits)
-                tax                     // Save difference pattern
-
-                // Check each bit to identify failed chip
-                // Start with bit 0 (Bank 8/U21)
-                and #$fe                // Mask all except bit 0
-                bne bank7Fail           // If other bits set, not just bank 8
-                ldx #$08                // Bank 8 = flash 8 times
-                jmp flash
-
-                bank7Fail:
-                        // Check bit 1 (Bank 7/U9)
-                        txa                     // Get difference pattern
-                        and #$fd                // Mask all except bit 1
-                        bne bank6Fail           // Other bits set, check next
-                        ldx #$07                // Bank 7 = flash 7 times
-                        jmp flash
-
-                bank6Fail:
-                        // Check bit 2 (Bank 6/U22)
-                        txa
-                        and #$fb                // Mask all except bit 2
-                        bne bank5Fail
-                        ldx #$06                // Bank 6 = flash 6 times
-                        jmp flash
-
-                bank5Fail:
-                        // Check bit 3 (Bank 5/U10)
-                        txa
-                        and #$f7                // Mask all except bit 3
-                        bne bank4Fail
-                        ldx #$05                // Bank 5 = flash 5 times
-                        jmp flash
-
-                bank4Fail:
-                        // Check bit 4 (Bank 4/U23)
-                        txa
-                        and #$ef                // Mask all except bit 4
-                        bne bank3Fail
-                        ldx #$04                // Bank 4 = flash 4 times
-                        jmp flash
-
-                bank3Fail:
-                        // Check bit 5 (Bank 3/U11)
-                        txa
-                        and #$df                // Mask all except bit 5
-                        bne bank2Fail
-                        ldx #$03                // Bank 3 = flash 3 times
-                        jmp flash
-
-                bank2Fail:
-                        // Check bit 6 (Bank 2/U24)
-                        txa
-                        and #$bf                // Mask all except bit 6
-                        bne bank1Fail
-                        ldx #$02                // Bank 2 = flash 2 times
-                        jmp flash
-
-                bank1Fail:
-                        // Bit 7 (Bank 1/U12) - last possibility
-                        ldx #$01                // Bank 1 = flash 1 time
+                //
+                // A contains the XOR result (difference bits, non-zero).
+                // Flash the bank of the LOWEST set bit: with multiple bad
+                // bits at least one genuinely failing chip is reported.
+                // (The previous cascade tested "exactly this bit set" per
+                // bank and fell through to bank 1/U12 for ANY multi-bit
+                // difference, blaming a chip that may be fine.)
+                ldy #$08                // Bit 0 = bank 8 ... bit 7 = bank 1
+        !:      lsr                     // Shift lowest bit into carry
+                bcs found               // Bit set -> Y is its bank number
+                dey
+                bne !-                  // A is non-zero, so a bit is always found
+        found:
+                tya                     // Bank number = flash count
+                tax                     // X = flash count for the flash loop
         }
 
 
@@ -531,7 +484,9 @@ memBankTest: {
                 // Number of flashes = failed chip number (1-8)
                 // This provides diagnostic info even without working display RAM
 
-                txs                             // X = flash count, save to stack pointer
+                txs                             // Park flash count in SP - the only
+                                                // storage that survives the delay loops
+                                                // (RAM is bad, registers get clobbered)
 
                 flashLoop:                      // Main flash cycle
                         // Flash WHITE
@@ -539,25 +494,25 @@ memBankTest: {
                         sta VIC2.BORDERCOLOUR   // Set border
                         sta VIC2.BGCOLOUR       // Set background
 
-                        LongDelayLoop($7f,0)    // Visible duration
+                        LongDelayLoop($7f,0)    // Visible duration (preserves X)
 
                         // Flash BLACK
                         lda #$00                // Black color
                         sta VIC2.BORDERCOLOUR
                         sta VIC2.BGCOLOUR
 
-                        LongDelayLoop($7f,0)    // Visible duration
+                        LongDelayLoop($7f,0)    // Visible duration (preserves X)
 
-                        // Flash counter logic
-                        // Uses nested delay loops to control flash timing
+                        // Short gap between flashes - Y-only delay so X (the
+                        // remaining flash count) survives. The old version
+                        // clobbered X here and recovered the count from A only
+                        // by accident of LongDelayLoop's TXA/TAX save/restore.
+                        ldy #$00
                 !:      dey
                         bne !-
-                        dex
-                        bne !-
 
-                        tax                     // Get flash count from stack
-                        dex                     // Decrement flash counter
-                        beq endLoopDelay        // Done flashing? Long pause
+                        dex                     // One flash done
+                        beq endLoopDelay        // Counted all N? Long pause
                         jmp flashLoop           // Continue flashing
 
                 endLoopDelay:
