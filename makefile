@@ -39,7 +39,7 @@ ifeq ($(shell uname),Darwin)
 endif
 
 # Phony targets
-.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking
+.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking test-mode-bank
 
 # Default target
 all: build
@@ -132,6 +132,29 @@ test-mode-walking: check-tools $(BUILD_PATH)
 	@echo "This build exercises the walking bits failure handler."
 	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
 
+# Build with memory bank test mode enabled (simulates a two-bit RAM failure)
+# Separate from the Low RAM modes: this test runs first and halts before any
+# other test, and it produces no screen output - the border flash count is the
+# whole diagnosis, so it is checked by reading the count back, not the screen.
+test-mode-bank: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in MEMORY BANK TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL the Memory Bank test!"
+	@echo "Expected: black screen, border flashes 8 times (bank 8 = U21), repeating"
+	@echo ""
+	@echo "Compiling with TEST_MODE_BANK_ENABLED defined..."
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_BANK_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@echo "Converting to cartridge format..."
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@echo "Creating binary for EPROM..."
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo ""
+	@echo "MEMORY BANK TEST MODE build complete!"
+	@echo "This build exercises the bank decode and flash counter."
+	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
@@ -194,6 +217,7 @@ help:
 	@echo "Development Targets:"
 	@echo "  test-mode    - Build with simulated RAM failure (Low RAM \$$AA phase, U21 chip)"
 	@echo "  test-mode-walking - Build with simulated RAM failure (Low RAM walking bits phase, U21 chip)"
+	@echo "  test-mode-bank - Build with simulated RAM failure (Memory Bank \$$AA phase, two-bit, U21 chip)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
 	@echo "  release      - Create release package (v$(VERSION))"

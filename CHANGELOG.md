@@ -146,6 +146,22 @@ screen code. The `$AA` mode is checked for "BIT" and the walking bits mode for
 "BAD" — the two differ by design, and the script's own instructions previously
 told the reader to expect "BAD" for both.
 
+#### The bank decode and flash counter had no test coverage at all
+`TEST_MODE` injected faults only into the Low RAM test, so `memBankTest`'s
+failure path — the bank decode rewritten above and the border flash counter —
+had never executed, in CI or anywhere else. That path is the *only* diagnosis
+available on a machine too broken to draw a screen, which makes it the one
+where a wrong answer costs the most.
+
+Added `TEST_MODE_BANK_ENABLED` (`make test-mode-bank`), injecting a two-bit
+fault: single-bit faults were always decoded correctly, so only a multi-bit
+injection can tell the old logic from the new. It cannot be checked on screen
+(there is none) and VICE's monitor cannot export a CPU register, so the test
+build publishes the computed count to `$07E7` and a checkpoint on the flash
+loop reads it back. Confirmed it discriminates: with the superseded cascade
+restored the probe reads 1 (U12, a good chip), with the current decode it
+reads 8 (U21, the actual lowest failing bit).
+
 #### Version file drift
 `VERSION` still read 1.3.0 after the 2.0.0 bump. `check-version.sh` did not read
 that file, so CI never caught it. Synced to 2.0.0 and added to the check.

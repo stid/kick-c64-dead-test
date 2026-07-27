@@ -314,10 +314,14 @@ first bad byte, so the rest of $0800-$0FFF is not checked on that pass.
 
 - **C64 Service Manual**: Complete schematics showing RAM chip locations
 - **Dead Test Source Code**: `src/low_ram_test.asm` shows exactly what's tested
-- **Software Test Mode**: Use `make test-mode` (fault in the `$AA` phase) or
-  `make test-mode-walking` (fault in the walking bits phase) to exercise the
-  failure paths without hardware risk. Both simulate a bit 0 / U21 failure;
-  `scripts/test-mode-validation.sh` builds and runs each under VICE.
+- **Software Test Mode**: Three builds exercise the failure paths without
+  hardware risk. `make test-mode` (Low RAM `$AA` phase) and
+  `make test-mode-walking` (Low RAM walking bits) both simulate a bit 0 / U21
+  failure and are checked on screen. `make test-mode-bank` simulates a two-bit
+  failure in the Memory Bank test, which fails before the display exists — there
+  the border flash count is the whole diagnosis, and it is checked by reading the
+  count back. `scripts/test-mode-validation.sh` builds and runs all three under
+  VICE and asserts the diagnosis each one reports.
 - **Community Forums**: Share your testing results and ask questions
 
 ## Questions?

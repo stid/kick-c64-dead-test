@@ -1,23 +1,32 @@
 #!/bin/bash
 # TEST_MODE Validation Script
 #
-# Validates that TEST_MODE builds correctly simulate a U21 (bit 0) RAM failure
-# in the Low RAM test and that the diagnostic identifies the failing chip.
+# Validates that TEST_MODE builds correctly simulate a RAM failure and that the
+# diagnostic identifies the failing chip.
 #
-# Two builds are validated, because test phases run in order and the first
-# failing phase halts the test:
+# Three builds are validated. Each failure path needs its own build, because
+# tests run in order and the first failure halts the diagnostic:
 #
-#   test-mode          -> fault in the $AA phase       -> testFailed_AA
-#   test-mode-walking  -> fault in the walking bits    -> testFailed_Walking
+#   test-mode          -> Low RAM, $AA phase        -> testFailed_AA
+#   test-mode-walking  -> Low RAM, walking bits     -> testFailed_Walking
+#   test-mode-bank     -> Memory Bank, $AA phase    -> memFailureFlash
 #
-# Without the second build the walking bits handler is never executed, which
-# is how a bug that made it report no failing chip at all went unnoticed.
+# Without the walking build that handler is never executed, which is how a bug
+# that made it report no failing chip at all went unnoticed.
 #
-# Expected on screen, with U21 marked in the chip diagram for both (the
-# injected fault is bit 0, which is U21). The status word differs by phase:
+# The two Low RAM builds inject a bit 0 fault and are checked on screen, with
+# U21 marked in the chip diagram for both. The status word differs by phase:
 #
 #   test-mode          -> "LOW RAM  BIT"  (testFailed_AA reports a stuck bit)
 #   test-mode-walking  -> "LOW RAM  BAD"  (testFailed_Walking reports a chip)
+#
+# The Memory Bank build is different in kind. It fails before the display is
+# initialised, so there is nothing on screen to read: the border flash count is
+# the entire diagnosis, and it is the only feedback available on a machine too
+# broken to draw anything. It injects a TWO-bit fault, because the bank decode
+# always handled single-bit faults correctly and mis-reported multi-bit ones.
+# Expected count is 8 (bank 8 = U21, the lowest set bit); the superseded decode
+# produced 1 (U12) - a good chip.
 
 set -e
 
@@ -151,6 +160,90 @@ assert_screen() {
     return 0
 }
 
+#=============================================================================
+# run_bank_mode <expected flash count>
+#
+# The Memory Bank failure path cannot be checked like the others: it halts
+# before the display exists, so there is no text to read back, and VICE's
+# monitor cannot export a CPU register to a file. The TEST_MODE_BANK_ENABLED
+# build therefore publishes the computed flash count to $07E7 (last byte of the
+# untouched screen page) and a checkpoint on the flash loop dumps that byte.
+# The value written is whatever the real decode produced - the probe observes
+# it, it does not compute it.
+#=============================================================================
+run_bank_mode() {
+    local expected="$1"
+    local target="test-mode-bank"
+    local label="memory bank two-bit failure"
+    local dump="$SHOT_DIR/test-mode-bank-probe.bin"
+
+    MODES_RUN=$((MODES_RUN + 1))
+
+    echo -e "${BLUE}📦 Building: $label ($target)${NC}"
+    if ! make clean "$target" > "/tmp/${target}-build.log" 2>&1; then
+        echo -e "${RED}❌ Build failed for $target${NC}"
+        cat "/tmp/${target}-build.log"
+        exit 1
+    fi
+    echo "✓ Build successful"
+
+    local flash_loop
+    flash_loop=$(grep -o 'flashLoop=\$[0-9a-fA-F]*' bin/main.sym | head -1 | cut -d'$' -f2)
+    if [ -z "$flash_loop" ]; then
+        echo -e "${RED}❌ Could not find flashLoop in bin/main.sym${NC}"
+        exit 1
+    fi
+    echo "   Flash loop at \$$flash_loop (from bin/main.sym)"
+
+    local moncmds="/tmp/${target}-moncommands.txt"
+    printf 'break $%s\ncommand 1 "save \\"%s/%s\\" 0 07e7 07e7"\n' \
+        "$flash_loop" "$PWD" "$dump" > "$moncmds"
+
+    echo -e "${BLUE}🖥️  Running $label in VICE...${NC}"
+    rm -f "$dump"
+    $XVFB_CMD x64sc \
+        -default \
+        -cartcrt bin/dead-test.crt \
+        -warp \
+        -limitcycles 40000000 \
+        +confirmonexit \
+        -moncommands "$moncmds" \
+        > "/tmp/vice-${target}.log" 2>&1 &
+    local vice_pid=$!
+
+    # 3 = 2-byte load address + the single probe byte.
+    local waited=0
+    while [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt 3 ] && [ "$waited" -lt 120 ]; do
+        sleep 1
+        waited=$((waited + 1))
+        kill -0 "$vice_pid" 2>/dev/null || break
+    done
+    kill "$vice_pid" 2>/dev/null || true
+    wait "$vice_pid" 2>/dev/null || true
+
+    if [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt 3 ]; then
+        echo -e "${RED}❌ No flash-count probe for $label${NC}"
+        echo "   The flash loop was never reached: the Memory Bank test did not fail."
+        tail -20 "/tmp/vice-${target}.log" 2>/dev/null | sed 's/^/     /'
+        exit 1
+    fi
+
+    local actual
+    actual=$(python3 -c "import sys; print(open(sys.argv[1],'rb').read()[2])" "$dump")
+    if [ "$actual" != "$expected" ]; then
+        echo -e "${RED}❌ Flash count is $actual, expected $expected${NC}"
+        echo "   The border flashes $actual times, sending a technician to the"
+        echo "   wrong chip. Bank 8 = U21; a count of 1 means bank 1 = U12, which"
+        echo "   is what the superseded decode reported for any multi-bit fault."
+        exit 1
+    fi
+
+    SCREENS_VERIFIED=$((SCREENS_VERIFIED + 1))
+    SCREENSHOTS_CAPTURED=$((SCREENSHOTS_CAPTURED + 1))
+    echo -e "${GREEN}✓ Flash count is $actual (bank 8 = U21), as expected${NC}"
+    echo
+}
+
 # run_mode <make-target> <human label> <screenshot path> <expected status word>
 run_mode() {
     local target="$1"
@@ -242,6 +335,7 @@ run_mode() {
 
 run_mode test-mode         "\$AA phase failure"   "$SHOT_DIR/test-mode-aa.png"      BIT
 run_mode test-mode-walking "walking bits failure" "$SHOT_DIR/test-mode-walking.png" BAD
+run_bank_mode 8
 
 echo "======================="
 echo
@@ -250,11 +344,11 @@ if [ "$SCREENSHOTS_CAPTURED" -eq "$MODES_RUN" ]; then
     echo -e "${GREEN}✅ TEST_MODE validation PASSED${NC}"
     echo
     echo "Summary:"
-    echo "  ✓ Both TEST_MODE builds compiled"
-    echo "  ✓ Both ran in VICE and rendered a screen"
-    echo "  ✓ Screenshots captured for visual inspection"
-    echo "  ✓ Screen contents verified for $SCREENS_VERIFIED of $MODES_RUN modes:"
-    echo "    the status word and the U21 mark were read back from screen RAM"
+    echo "  ✓ All $MODES_RUN TEST_MODE builds compiled and ran in VICE"
+    echo "  ✓ Screenshots captured for the two Low RAM modes"
+    echo "  ✓ Diagnosis verified for $SCREENS_VERIFIED of $MODES_RUN modes:"
+    echo "    Low RAM  - status word and U21 mark read back from screen RAM"
+    echo "    Mem Bank - border flash count read back from the probe"
 else
     echo -e "${YELLOW}⚠️  TEST_MODE validation INCOMPLETE${NC}"
     echo

@@ -4,7 +4,29 @@
 #import "./data.asm"
 #import "./main_loop.asm"
 
+//=============================================================================
+// TEST MODE CONFIGURATION
+//
+//   TEST_MODE_BANK_ENABLED - injects a two-bit fault (bits 0 and 2) into the
+//                            $AA phase, exercising memFailureFlash's bank
+//                            decode and the border flash counter.
+//
+// Why this needs its own flag rather than reusing the Low RAM ones: this test
+// runs first, so a fault here halts the diagnostic before any other test is
+// reached, and it produces no screen output at all - the flash count IS the
+// diagnosis. It is the only feedback available on a machine too broken to
+// draw a display, which makes it the path where a wrong answer costs the most.
+//
+// Usage: 'make test-mode-bank'. No source files are modified.
+//=============================================================================
+
         * = * "mem bank test"
+
+// Where the TEST_MODE_BANK_ENABLED probe publishes the computed flash count.
+// Last byte of the screen page - safe because this test fails long before the
+// layout is drawn. Only referenced by the probe, which is compiled out of
+// normal builds.
+.label TEST_PROBE = $07e7
 
 //=============================================================================
 // MEMORY BANK TEST - Critical First Test
@@ -66,6 +88,16 @@ memBankTest: {
                 ldy #$00
         verifyAALoop:
                 lda $0100,y
+#if TEST_MODE_BANK_ENABLED
+                // TEST MODE: simulate a TWO-bit failure (bits 0 and 2).
+                // Multi-bit is the case that matters: the old bank decode
+                // handled single-bit faults correctly and mis-reported every
+                // multi-bit one, so a single-bit injection would pass either
+                // way and prove nothing. $AA EOR $05 = $AF, so the handler
+                // recovers a difference of $05 -> lowest set bit is 0 ->
+                // bank 8 -> U21 -> 8 flashes. The old cascade said 1 (U12).
+                eor #$05
+#endif
                 cmp #$aa
                 bne !fail+
                 lda $0200,y
@@ -484,6 +516,23 @@ memBankTest: {
                 // Number of flashes = failed chip number (1-8)
                 // This provides diagnostic info even without working display RAM
 
+#if TEST_MODE_BANK_ENABLED
+                // TEST MODE PROBE: publish the computed flash count to memory
+                // so it can be asserted automatically.
+                //
+                // This path produces NO screen output - it fails before the
+                // display is initialised, and the border flash count is the
+                // entire diagnosis. That is also why it cannot be checked the
+                // way the Low RAM tests are: there is no text to read back,
+                // and VICE's monitor cannot export a CPU register to a file.
+                // Storing X makes the real decode result observable without
+                // altering it - the value written is whatever memFailureFlash
+                // just computed.
+                //
+                // $07E7 is the last byte of the screen page, which is untouched
+                // here: this test fails before the layout is ever drawn.
+                stx TEST_PROBE
+#endif
                 txs                             // Park flash count in SP - the only
                                                 // storage that survives the delay loops
                                                 // (RAM is bad, registers get clobbered)
