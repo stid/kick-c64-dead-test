@@ -20,7 +20,7 @@
 
 //=============================================================================
 // CARTRIDGE CONFIGURATION - Ultimax Mode
-// GAME = 0, EXROM = 1 - This creates an Ultimax cartridge (16KB at $E000)
+// GAME = 0, EXROM = 1 - This creates an Ultimax cartridge (8KB at $E000-$FFFF)
 // 
 // In Ultimax mode:
 // - $E000-$FFFF: Cartridge ROM (this code)
