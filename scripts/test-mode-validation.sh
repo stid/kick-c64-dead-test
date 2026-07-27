@@ -115,10 +115,18 @@ assert_screen() {
         > "/tmp/vice-${target}-dump.log" 2>&1 &
     local vice_pid=$!
 
+    # Wait for the COMPLETE dump, not merely for the file to appear: the
+    # monitor's save is not atomic, and killing VICE between create and write
+    # would leave a truncated file that fails the check for the wrong reason.
+    # 1002 = 2-byte load address + 1000 bytes of screen RAM.
+    #
     # Locally the checkpoint lands in ~5s of warp; allow generous headroom for
-    # slower CI runners before calling it a failure.
+    # slower CI runners. If the halt loop is never reached, VICE exits at its
+    # cycle limit and the kill -0 check ends the wait early.
+    local dump_size=1002
     local waited=0
-    while [ ! -f "$dump" ] && [ "$waited" -lt 120 ]; do
+    while [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt "$dump_size" ] \
+          && [ "$waited" -lt 120 ]; do
         sleep 1
         waited=$((waited + 1))
         kill -0 "$vice_pid" 2>/dev/null || break
@@ -126,9 +134,10 @@ assert_screen() {
     kill "$vice_pid" 2>/dev/null || true
     wait "$vice_pid" 2>/dev/null || true
 
-    if [ ! -f "$dump" ]; then
-        echo -e "${RED}❌ No screen dump for $label - the halt loop was never reached${NC}"
-        echo "   The diagnostic did not report a failure, or never got that far."
+    if [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt "$dump_size" ]; then
+        echo -e "${RED}❌ No complete screen dump for $label${NC}"
+        echo "   The halt loop was never reached: the diagnostic did not report"
+        echo "   a failure, or never got that far."
         tail -20 "/tmp/vice-${target}-dump.log" 2>/dev/null | sed 's/^/     /'
         return 1
     fi
@@ -252,8 +261,11 @@ else
     echo "Summary:"
     echo "  ✓ Both TEST_MODE builds compiled"
     echo "  ⚠️ Screenshots captured for $SCREENSHOTS_CAPTURED of $MODES_RUN modes"
+    echo "  ⚠️ Screen contents verified for $SCREENS_VERIFIED of $MODES_RUN modes"
     echo
     echo "  The builds are valid but their runtime output was not observed."
+    echo "  A mode that produced no screenshot is skipped before the screen"
+    echo "  content check runs, so neither ran for it."
     echo "  Treat this as a build check only, not a behavioral check."
 fi
 
