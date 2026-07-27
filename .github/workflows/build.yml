@@ -3,6 +3,11 @@ name: Build Dead Test
 on:
   push:
     branches: [ master, main, develop ]
+    # Without this the release job below is unreachable. A push event with only
+    # a branches filter does not match tag pushes, so tagging triggered nothing
+    # at all - while on branch and PR runs the release job's ref condition is
+    # false and it reports as skipped. It looked wired up and could never fire.
+    tags: [ 'v*' ]
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:
