@@ -81,7 +81,7 @@ Override defaults with: `make VARIABLE=value`
 
 ## References
 
-- **Installation & Prerequisites:** See `README.md`
+- **Installation & Prerequisites:** See `readme.md`
 - **Detailed Test Algorithms:** See `docs/TECHNICAL_DOCUMENTATION.md`
 - **Makefile Options:** Run `make help`
 - **VICE Documentation:** [https://vice-emu.sourceforge.io/](https://vice-emu.sourceforge.io/)
