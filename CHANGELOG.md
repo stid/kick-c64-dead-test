@@ -134,7 +134,17 @@ output goes unobserved. In CI (`REQUIRE_SCREENSHOT=1`) a missing screenshot is
 now a hard failure. That strictness immediately exposed a second layer of the
 same problem: the Debian/Ubuntu `vice` package ships without the copyrighted
 C64 ROMs, so `x64sc` could never boot in CI at all — the workflow now installs
-kernal/basic/chargen from the VICE source mirror before running the emulator.
+kernal/basic/chargen from the VICE source mirror (cached, so a transient
+network failure does not fail every PR) before running the emulator.
+
+A screenshot still only proved that *a* screen was rendered: a regression back
+to "BAD over an empty chip diagram" produces a perfectly valid PNG. The script
+now takes a second VICE run per mode with a monitor checkpoint on `UFailed`'s
+halt loop, dumps screen RAM at the moment the diagnostic gives up, and
+`scripts/check-screen-dump.py` asserts the status word and the U21 mark by
+screen code. The `$AA` mode is checked for "BIT" and the walking bits mode for
+"BAD" — the two differ by design, and the script's own instructions previously
+told the reader to expect "BAD" for both.
 
 #### Version file drift
 `VERSION` still read 1.3.0 after the 2.0.0 bump. `check-version.sh` did not read
