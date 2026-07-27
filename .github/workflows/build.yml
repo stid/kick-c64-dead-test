@@ -266,5 +266,9 @@ jobs:
           bin/dead-test.crt
           bin/dead-test.bin
         draft: false
-        prerelease: false
+        # Any tag carrying a pre-release suffix (v2.0.0-beta.1) publishes as a
+        # pre-release; a plain v2.0.0 publishes as a full release. Without this
+        # a beta tag would be marked "Latest release" no matter what the version
+        # string says, which is the opposite of what tagging a beta is for.
+        prerelease: ${{ contains(github.ref_name, '-') }}
         generate_release_notes: true

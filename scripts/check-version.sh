@@ -21,16 +21,25 @@ echo "📄 makefile: $MAKEFILE_VERSION"
 VERSION_FILE_VERSION=$(cat VERSION)
 echo "📄 VERSION: $VERSION_FILE_VERSION"
 
-# Extract version from README.md badge
-README_VERSION=$(grep "version-.*-blue" readme.md | sed -E 's/.*version-([0-9.]+)-blue.*/\1/')
+# The three extractions below anchor on their delimiter rather than on a
+# [0-9.]+ character class. That class cannot match a pre-release suffix, and
+# the data.asm one failed DANGEROUSLY: it matched the numeric prefix and
+# silently truncated, so a cartridge displaying "2.0.0-beta.1" compared equal
+# to files saying "2.0.0" and the check passed green while shipping a version
+# that was never released.
+
+# Extract version from README.md badge.
+# shields.io needs a literal dash written as "--", so unescape before comparing.
+README_VERSION=$(grep "version-.*-blue" readme.md | sed -E 's/.*version-(.+)-blue.*/\1/')
+README_VERSION=${README_VERSION//--/-}
 echo "📄 README.md badge: $README_VERSION"
 
-# Extract version from src/data.asm
-DATA_ASM_VERSION=$(grep "c-64 dead test rev stid" src/data.asm | sed -E 's/.*stid ([0-9.]+).*/\1/')
+# Extract version from src/data.asm (bounded by the closing quote)
+DATA_ASM_VERSION=$(grep "c-64 dead test rev stid" src/data.asm | sed -E 's/.*stid ([^"]+)".*/\1/')
 echo "📄 src/data.asm: $DATA_ASM_VERSION"
 
 # Extract latest version from CHANGELOG.md (skip [Unreleased])
-CHANGELOG_VERSION=$(grep "^## \[" CHANGELOG.md | grep -v Unreleased | head -1 | sed -E 's/.*\[([0-9.]+)\].*/\1/')
+CHANGELOG_VERSION=$(grep "^## \[" CHANGELOG.md | grep -v Unreleased | head -1 | sed -E 's/.*\[([^]]+)\].*/\1/')
 echo "📄 CHANGELOG.md: $CHANGELOG_VERSION"
 
 echo

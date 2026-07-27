@@ -42,7 +42,7 @@ SCREEN_ROWS = 25
 
 
 def to_text(code):
-    """Render one screen code as ASCII (letters, digits, space)."""
+    """Render one screen code as ASCII (letters, digits, punctuation, space)."""
     code &= 0x7F
     if code == 0x00 or code == 0x20:
         return " "
@@ -50,7 +50,41 @@ def to_text(code):
         return chr(ord("A") + code - 1)
     if 0x30 <= code <= 0x39:
         return chr(code)
+    # Punctuation must be distinguishable: the version banner contains both
+    # '-' and '.', and rendering them identically would hide a wrong version.
+    if code in (0x2D, 0x2E, 0x2F, 0x2C, 0x3A):
+        return {0x2D: "-", 0x2E: ".", 0x2F: "/", 0x2C: ",", 0x3A: ":"}[code]
     return "."
+
+
+def check_version_banner(screen):
+    """Assert the version drawn on row 0 matches the VERSION file.
+
+    The banner and the loop counter that draws it (src/data.asm strAbout and
+    the ldx in src/main_loop.asm) are a lockstep pair: lengthen the string
+    without bumping the counter and the tail is silently never drawn - no
+    crash, no assembler warning. Nothing else in CI looks at row 0, so this is
+    the only check that catches a cartridge displaying the wrong version.
+    """
+    try:
+        with open("VERSION") as f:
+            expected = f.read().strip()
+    except OSError as exc:
+        print(f"⚠️  Skipping version banner check: cannot read VERSION ({exc})")
+        return True
+
+    row0 = "".join(to_text(b) for b in screen[0:SCREEN_COLS]).rstrip()
+    wanted = f"REV STID {expected}".upper()
+
+    if wanted in row0:
+        print(f"   ✓ Version banner reads {expected!r}")
+        return True
+
+    print(f"❌ Version banner does not show {expected!r}")
+    print(f"   row 0: {row0!r}")
+    print("   Either the version strings are out of step, or strAbout grew")
+    print("   past the ldx counter in main_loop.asm and is being truncated.")
+    return False
 
 
 def read_word(screen, offset, length=3):
@@ -86,7 +120,7 @@ def main():
         print(f"     |{''.join(to_text(b) for b in line)}|")
     print()
 
-    ok = True
+    ok = check_version_banner(screen)
 
     status = read_word(screen, STATUS_OFFSET)
     if status == expected_status:
