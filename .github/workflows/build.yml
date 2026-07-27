@@ -103,18 +103,33 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y vice xvfb
 
-    - name: Install C64 ROM images
+    - name: Cache C64 ROM images
+      id: cache-c64roms
+      uses: actions/cache@v4
+      with:
+        path: /tmp/c64roms
+        key: c64roms-r46189
+
+    - name: Download C64 ROM images
+      if: steps.cache-c64roms.outputs.cache-hit != 'true'
       run: |
         # The Debian/Ubuntu vice package ships WITHOUT the copyrighted C64
         # ROMs, so x64sc cannot boot the machine and every VICE step here
         # silently produced nothing. Fetch them from the VICE source tree
-        # (pinned mirror tag) into the package's system data dir.
-        sudo mkdir -p /usr/share/vice/C64
+        # (pinned mirror tag). Cached so a raw.githubusercontent hiccup does
+        # not fail every PR - the ROMs are now a hard gate on the build.
+        mkdir -p /tmp/c64roms
         for f in kernal-901227-03.bin basic-901226-01.bin chargen-901225-01.bin; do
-          sudo curl -sfL -o "/usr/share/vice/C64/$f" \
+          curl -sfL --retry 3 --retry-delay 2 -o "/tmp/c64roms/$f" \
             "https://raw.githubusercontent.com/VICE-Team/svn-mirror/r46189/vice/data/C64/$f"
         done
-        ls -la /usr/share/vice/C64/
+
+    - name: Install C64 ROM images
+      run: |
+        # x64sc looks for the ROMs in the vice package's system data dir.
+        sudo mkdir -p /usr/share/vice/C64
+        sudo cp /tmp/c64roms/*.bin /usr/share/vice/C64/
+        ls -la /usr/share/vice/C64/*.bin
 
     - name: Verify cartridge format
       run: |
@@ -183,17 +198,30 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y vice xvfb
 
-    - name: Install C64 ROM images
+    - name: Cache C64 ROM images
+      id: cache-c64roms
+      uses: actions/cache@v4
+      with:
+        path: /tmp/c64roms
+        key: c64roms-r46189
+
+    - name: Download C64 ROM images
+      if: steps.cache-c64roms.outputs.cache-hit != 'true'
       run: |
-        # See the identical step in the test job: the Debian/Ubuntu vice
+        # See the identical steps in the test job: the Debian/Ubuntu vice
         # package ships without the C64 ROMs and x64sc cannot boot without
         # them.
-        sudo mkdir -p /usr/share/vice/C64
+        mkdir -p /tmp/c64roms
         for f in kernal-901227-03.bin basic-901226-01.bin chargen-901225-01.bin; do
-          sudo curl -sfL -o "/usr/share/vice/C64/$f" \
+          curl -sfL --retry 3 --retry-delay 2 -o "/tmp/c64roms/$f" \
             "https://raw.githubusercontent.com/VICE-Team/svn-mirror/r46189/vice/data/C64/$f"
         done
-        ls -la /usr/share/vice/C64/
+
+    - name: Install C64 ROM images
+      run: |
+        sudo mkdir -p /usr/share/vice/C64
+        sudo cp /tmp/c64roms/*.bin /usr/share/vice/C64/
+        ls -la /usr/share/vice/C64/*.bin
 
     - name: Run TEST_MODE validation
       run: |
