@@ -63,6 +63,7 @@ fi
 echo
 
 SCREENSHOTS_CAPTURED=0
+SCREENS_VERIFIED=0
 MODES_RUN=0
 
 # Screenshots must live outside bin/, because each mode runs "make clean" and
@@ -70,11 +71,83 @@ MODES_RUN=0
 SHOT_DIR="screenshots"
 mkdir -p "$SHOT_DIR"
 
-# run_mode <make-target> <human label> <screenshot path>
+#=============================================================================
+# assert_screen <make-target> <human label> <dump path> <expected status word>
+#
+# Reads back WHAT the diagnostic displayed, not merely that it displayed
+# something. A VICE monitor checkpoint on UFailed's halt loop dumps screen RAM
+# the moment the diagnostic gives up, and check-screen-dump.py asserts the
+# status word and the U21 mark in the chip diagram.
+#
+# This needs its own VICE run. Hitting the checkpoint stops emulation, so VICE
+# never reaches -limitcycles and never writes the -exitscreenshot PNG; the run
+# above keeps producing the human-viewable screenshot, this one produces the
+# machine-checkable dump. The emulator is killed once the dump lands, because
+# the monitor blocks waiting for input that never comes.
+#=============================================================================
+assert_screen() {
+    local target="$1"
+    local label="$2"
+    local dump="$3"
+    local expected="$4"
+
+    # Label addresses shift between builds, so take deadLoop from this build.
+    local dead_loop
+    dead_loop=$(grep -o 'deadLoop=\$[0-9a-fA-F]*' bin/main.sym | head -1 | cut -d'$' -f2)
+    if [ -z "$dead_loop" ]; then
+        echo -e "${RED}❌ Could not find deadLoop in bin/main.sym${NC}"
+        return 1
+    fi
+    echo "   Halt loop at \$$dead_loop (from bin/main.sym)"
+
+    local moncmds="/tmp/${target}-moncommands.txt"
+    printf 'break $%s\ncommand 1 "save \\"%s/%s\\" 0 0400 07e7"\n' \
+        "$dead_loop" "$PWD" "$dump" > "$moncmds"
+
+    rm -f "$dump"
+    $XVFB_CMD x64sc \
+        -default \
+        -cartcrt bin/dead-test.crt \
+        -warp \
+        -limitcycles 40000000 \
+        +confirmonexit \
+        -moncommands "$moncmds" \
+        > "/tmp/vice-${target}-dump.log" 2>&1 &
+    local vice_pid=$!
+
+    # Locally the checkpoint lands in ~5s of warp; allow generous headroom for
+    # slower CI runners before calling it a failure.
+    local waited=0
+    while [ ! -f "$dump" ] && [ "$waited" -lt 120 ]; do
+        sleep 1
+        waited=$((waited + 1))
+        kill -0 "$vice_pid" 2>/dev/null || break
+    done
+    kill "$vice_pid" 2>/dev/null || true
+    wait "$vice_pid" 2>/dev/null || true
+
+    if [ ! -f "$dump" ]; then
+        echo -e "${RED}❌ No screen dump for $label - the halt loop was never reached${NC}"
+        echo "   The diagnostic did not report a failure, or never got that far."
+        tail -20 "/tmp/vice-${target}-dump.log" 2>/dev/null | sed 's/^/     /'
+        return 1
+    fi
+
+    if ! python3 scripts/check-screen-dump.py "$dump" "$expected"; then
+        echo -e "${RED}❌ Screen contents wrong for $label${NC}"
+        return 1
+    fi
+
+    echo -e "${GREEN}✓ Screen contents verified for $label${NC}"
+    return 0
+}
+
+# run_mode <make-target> <human label> <screenshot path> <expected status word>
 run_mode() {
     local target="$1"
     local label="$2"
     local shot="$3"
+    local expected="$4"
 
     MODES_RUN=$((MODES_RUN + 1))
 
@@ -146,11 +219,20 @@ run_mode() {
 
     SCREENSHOTS_CAPTURED=$((SCREENSHOTS_CAPTURED + 1))
     echo -e "${GREEN}✓ Screenshot captured: $shot ($size bytes)${NC}"
+
+    # A screenshot only proves VICE rendered a screen. Now check what is ON it.
+    # VICE clearly works at this point, so a wrong screen is a real regression -
+    # always a hard failure, not gated on REQUIRE_SCREENSHOT.
+    echo -e "${BLUE}🔎 Verifying screen contents for $label...${NC}"
+    if ! assert_screen "$target" "$label" "${shot%.png}-screen.bin" "$expected"; then
+        exit 1
+    fi
+    SCREENS_VERIFIED=$((SCREENS_VERIFIED + 1))
     echo
 }
 
-run_mode test-mode         "\$AA phase failure"   "$SHOT_DIR/test-mode-aa.png"
-run_mode test-mode-walking "walking bits failure" "$SHOT_DIR/test-mode-walking.png"
+run_mode test-mode         "\$AA phase failure"   "$SHOT_DIR/test-mode-aa.png"      BIT
+run_mode test-mode-walking "walking bits failure" "$SHOT_DIR/test-mode-walking.png" BAD
 
 echo "======================="
 echo
@@ -162,6 +244,8 @@ if [ "$SCREENSHOTS_CAPTURED" -eq "$MODES_RUN" ]; then
     echo "  ✓ Both TEST_MODE builds compiled"
     echo "  ✓ Both ran in VICE and rendered a screen"
     echo "  ✓ Screenshots captured for visual inspection"
+    echo "  ✓ Screen contents verified for $SCREENS_VERIFIED of $MODES_RUN modes:"
+    echo "    the status word and the U21 mark were read back from screen RAM"
 else
     echo -e "${YELLOW}⚠️  TEST_MODE validation INCOMPLETE${NC}"
     echo
@@ -174,14 +258,15 @@ else
 fi
 
 echo
-echo "Manual verification (the part no automated check here covers):"
-echo "  Open the screenshots and confirm each shows:"
+echo "What was checked automatically, from screen RAM:"
 echo "    - $SHOT_DIR/test-mode-aa.png:      \"LOW RAM\" followed by \"BIT\""
 echo "    - $SHOT_DIR/test-mode-walking.png: \"LOW RAM\" followed by \"BAD\""
 echo "    - both: \"BAD\" marked next to U21 in the chip diagram"
 echo "  The status word differs by design: the \$AA phase reports a stuck bit"
 echo "  (BIT), the walking bits phase reports a failed chip (BAD)."
-echo "  An empty chip diagram means the failing chip was not identified."
+echo
+echo "Still worth an eyeball: the screenshots show colors, the border, and the"
+echo "rest of the layout, none of which the screen-code check looks at."
 echo
 
 exit 0
