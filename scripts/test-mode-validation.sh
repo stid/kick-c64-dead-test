@@ -255,9 +255,36 @@ run_bank_mode() {
         exit 1
     fi
 
+    echo -e "${GREEN}✓ Probe reads $actual ($meaning), as expected${NC}"
+
+    # The probe proves the right branch was taken. It says nothing about the
+    # RATE, which for a border flash IS the diagnosis - and a flash too fast to
+    # see is indistinguishable from broken video. Needs its own run: the
+    # checkpoint above blocks emulation, so that run never writes a screenshot.
+    local shot="$SHOT_DIR/${target}.png"
+    rm -f "$shot"
+    $XVFB_CMD x64sc \
+        -default \
+        -cartcrt bin/dead-test.crt \
+        -warp \
+        -limitcycles 30000000 \
+        +confirmonexit \
+        -exitscreenshot "$shot" \
+        > "/tmp/vice-${target}-shot.log" 2>&1 || true
+
+    if [ ! -f "$shot" ]; then
+        echo -e "${YELLOW}⚠️  No screenshot for $label - flash rate not checked${NC}"
+        if [ "${REQUIRE_SCREENSHOT:-0}" = "1" ]; then
+            echo -e "${RED}❌ REQUIRE_SCREENSHOT=1: missing screenshot is a failure${NC}"
+            exit 1
+        fi
+    elif ! python3 scripts/check-flash-pattern.py "$shot"; then
+        echo -e "${RED}❌ Flash rate wrong for $label${NC}"
+        exit 1
+    fi
+
     SCREENS_VERIFIED=$((SCREENS_VERIFIED + 1))
     SCREENSHOTS_CAPTURED=$((SCREENSHOTS_CAPTURED + 1))
-    echo -e "${GREEN}✓ Probe reads $actual ($meaning), as expected${NC}"
     echo
 }
 

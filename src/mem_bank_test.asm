@@ -611,20 +611,32 @@ memBankTest: {
                 lda #$ff
                 sta TEST_PROBE
 #endif
+                // Rate matters as much as the colours here. ShortDelayLoop($1f)
+                // gave a half-cycle of ~171 cycles - about 2.9 kHz, alternating
+                // ~57 times per PAL frame. That is not a flash: the screen fills
+                // with fine horizontal banding that reads as broken video or a
+                // dead machine, which is the opposite of the intended message.
+                //
+                // LongDelayLoop($30,0) is ~62 ms per half-cycle, so ~8 Hz:
+                // unmistakably flashing, and clearly faster than the 3 Hz counted
+                // flash it must be told apart from. The counted flash also pauses
+                // between groups, so the two are distinguishable at a glance:
+                //   N flashes, pause, repeat  -> chip N failed
+                //   never stops, never pauses -> bus fault, no chip identified
                 busFlashLoop:
                         // Flash WHITE
                         lda #$01                // White color
                         sta VIC2.BORDERCOLOUR
                         sta VIC2.BGCOLOUR
 
-                        ShortDelayLoop($1f)     // Short delay for fast flash
+                        LongDelayLoop($30,0)    // ~62ms - visible, no pause
 
                         // Flash BLACK
                         lda #$00                // Black color
                         sta VIC2.BORDERCOLOUR
                         sta VIC2.BGCOLOUR
 
-                        ShortDelayLoop($1f)     // Short delay for fast flash
+                        LongDelayLoop($30,0)    // ~62ms - visible, no pause
 
                         jmp busFlashLoop        // Continuous loop - no pattern
         }
