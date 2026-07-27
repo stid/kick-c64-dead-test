@@ -164,9 +164,7 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
 
 By submitting a pull request you agree that your contribution is licensed under the MIT license in [LICENSE](LICENSE).
 
-This project's own code is MIT licensed — use it, modify it, build cartridges from it, sell them. That license reaches this project's contributions only. Parts of `src/` are a port of the Commodore 64 Dead Test rev. 781220 (© 1988 Commodore Electronics Ltd), in which no rights are claimed; each file carries an SPDX header saying which category it falls in. See [NOTICE.md](NOTICE.md) for the full picture.
-
-If you add a new file, give it the matching SPDX header.
+Parts of `src/` are a port of the Commodore 64 Dead Test rev. 781220 (© 1988 Commodore Electronics Ltd), in which no rights are claimed. See [NOTICE.md](NOTICE.md).
 
 ## Questions?
 

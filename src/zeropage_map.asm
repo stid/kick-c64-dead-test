@@ -1,8 +1,3 @@
-// SPDX-License-Identifier: MIT
-// SPDX-FileCopyrightText: 2020-2026 stid and contributors
-//
-// Original work. See NOTICE.md.
-
 
 //=============================================================================
 // ZERO PAGE MEMORY MAP FOR C64 DEAD TEST

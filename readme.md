@@ -299,7 +299,7 @@ We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ## Copyright & Attribution
 
-This project's own code is MIT licensed — see [LICENSE](LICENSE). It is a Kick Assembler port of the Commodore 64 Dead Test rev. 781220 (© 1988 Commodore), restructured and extended; no rights are claimed in the original, and its ROM image is not distributed here. Parts of `src/` are ported and parts are original work — each file carries an SPDX header saying which. See [NOTICE.md](NOTICE.md) for the full attribution and the ownership chain.
+This project's own code is MIT licensed — see [LICENSE](LICENSE). It ports the Commodore 64 Dead Test rev. 781220 (© 1988 Commodore), in which no rights are claimed — see [NOTICE.md](NOTICE.md).
 
 ## Potential Bugs
 
