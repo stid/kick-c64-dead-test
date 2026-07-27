@@ -6,6 +6,14 @@
 
 > **Quick Start**: Download the [latest release](https://github.com/stid/kick-c64-dead-test/releases) and burn `dead-test.bin` to an EPROM, or run `dead-test.crt` in VICE.
 
+> **2.0.0-beta.1 is a pre-release.** Every version up to 1.3.0 only *added* tests to the
+> original dead test. This one changes how existing tests decide which chip failed and how
+> they report it, so a machine you have tested before can give a different answer. The
+> changes are believed correct and each one is covered by an automated test, but they have
+> been verified only against *injected* faults in an emulator — see
+> [Beta status](#beta-status-what-is-and-is-not-verified). If you diagnose real hardware
+> with it, 1.3.0 remains available and unchanged.
+
 A comprehensive hardware diagnostic tool for the Commodore 64, designed to test all critical components even when the system is severely damaged. This is an enhanced KickAssembler port of the **COMMODORE 64 Dead Test rev. 781220**, based on the disassembly by [worldofjani.com](https://blog.worldofjani.com/?p=164).
 
 ![Running Dead Test](/images/IMG_20200329_152641.png)
@@ -16,7 +24,9 @@ A comprehensive hardware diagnostic tool for the Commodore 64, designed to test 
 - ✅ **Enhanced visual feedback** - Color reference bar and border cycling
 - ✅ **SID filter test** - Detects analog filter failures missed by other tests
 - ✅ **Modern codebase** - Modular structure with extensive documentation
-- ✅ **Preserved compatibility** - Original test logic remains untouched
+- ⚠️ **Changed diagnosis logic** - up to v1.x the project only *added* tests. v2.0 is the
+  first release to change how existing tests decide and report failures. See
+  [What changed in 2.0](#what-changed-in-20-read-this-before-trusting-a-diagnosis).
 - ✅ **Open development** - Clear attribution and contribution guidelines
 
 ## Quick Start
@@ -99,9 +109,52 @@ x64sc ./bin/dead-test.crt
 
 The dead test should start with the familiar black screen. During this phase, the memory is being tested. The main test view will appear shortly after (it takes around 10 seconds).
 
+## What changed in 2.0 (read this before trusting a diagnosis)
+
+If you have used 1.3.0 or the original rev. 781220, these are the cases where the same
+broken machine now gives you a different answer. Everything here is a deliberate change,
+not a side effect.
+
+| Situation | 1.3.0 said | 2.0 says | Why |
+|---|---|---|---|
+| Walking-bits failure in Zero Page, Stack Page or Low RAM | "BAD" over an **empty** chip diagram | "BAD" with the failing chip marked | The handler XORed a value against itself and always got 0, so no chip bit was ever set. It never identified a chip. |
+| Walking-bits failure in the Memory Bank test | Border flashed **8 times** (U21) for *every* failure | Flashes the bank that actually failed | Same root cause. On a machine with no display the flash count is the whole diagnosis, so this named the wrong chip with full confidence. |
+| Two or more bits bad at once, Memory Bank test | Border flashed **once** (U12) whatever the fault | Flashes the lowest failing bank | The old decode tested "exactly this one bit" per bank and fell through to bank 1 for *any* multi-bit difference — blaming a chip that may be fine. |
+| PRN failure in RAM TEST ($0800-$0FFF) | "BUS" | "BIT", chip marked, testing continues | That test writes and reads back through the *same* address, so an aliased write reads back through the same alias. It cannot observe a bus fault, so it should never have claimed one. |
+| Address line A8-A11 swapped or mirrored | Memory Bank PRN phase **passed** | Fails, continuous border flash | The PRN phase wrote identical bytes to all 15 pages, so page confusion could not produce a mismatch — the exact fault class the phase exists to catch. Each page now gets a different sequence. |
+
+Two failure signals are **new in 2.0** and have no equivalent in the original — if you have
+never seen them, that is why:
+
+- **"BUS"** displayed with the chip diagram left deliberately blank. A bus fault is not a
+  chip fault; marking a chip would send you to replace a good part.
+- **Continuous border flashing with no count**, during the black-screen phase. A counted
+  flash identifies a chip; continuous flashing means page confusion with no single chip to
+  blame.
+
+## Beta status: what is and is not verified
+
+**Verified.** Every failure signal the cartridge can produce — "BIT", "BAD", "BUS", the
+counted border flash and the continuous one — is exercised by an automated test that runs
+in CI, reads the result back out of screen RAM or a probe byte, and asserts the exact
+diagnosis. The bank decode fix is confirmed to *discriminate*: with the superseded logic
+restored, the test fails.
+
+**Not verified.** All of it is checked against faults *injected* into an emulator. VICE's
+memory never actually fails. Real DRAM fails in ways injection does not reproduce —
+marginal cells, temperature-dependent faults, several chips degrading at once. The
+multi-bit decode in particular only matters in exactly the scenario emulation cannot
+create. No amount of CI closes this gap; only real broken hardware does.
+
+That is why this is a beta. If you run it against a machine whose fault you have already
+confirmed by other means, a report either way is genuinely useful.
+
 ## Differences from the Original rev. 781220 Dead Test
 
-The original test logic and sequence remain untouched where applicable. Below are the enhancements and differences between this version and the original rev. 781220:
+The test sequence still follows the original. The *diagnosis* logic no longer does — see
+[What changed in 2.0](#what-changed-in-20-read-this-before-trusting-a-diagnosis) for the
+failure reporting that changed in this release. Below are the enhancements and differences
+between this version and the original rev. 781220:
 
 ### New Tests (Not in Original)
 
