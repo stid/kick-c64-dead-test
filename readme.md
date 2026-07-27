@@ -8,8 +8,8 @@
 
 > **2.0.0-beta.1 is a pre-release.** The last published release is
 > [v1.2.0](https://github.com/stid/kick-c64-dead-test/releases) (2020). Against that, 2.0
-> rewrites how every RAM test decides and reports a failure — and it changes one existing
-> diagnosis outright: the border flash count for a multi-bit fault. Each new signal is
+> rewrites how every RAM test decides and reports a failure, and changes three existing
+> diagnoses outright. Each new signal is
 > covered by an automated test, but all of them are verified against *injected* faults in
 > an emulator, never against real failing hardware. See
 > [Beta status](#beta-status-what-is-and-is-not-verified). v1.2.0 remains available if you
@@ -112,10 +112,11 @@ The dead test should start with the familiar black screen. During this phase, th
 
 ## What changed in 2.0 (read this before trusting a diagnosis)
 
-The baseline is **v1.2.0**, the last published release. (The CHANGELOG describes a 1.3.0,
-but it was never tagged or released — no one has it.) In v1.2.0 every RAM test used the
-same 20 walking-bit patterns and had one verdict: the chip diagram, or a counted border
-flash before the display existed.
+The baseline is **v1.2.0**, the last published release. (A 1.3.0 was version-bumped during
+development but never tagged or released — 2.0 superseded it a day later, and its content
+is folded into the 2.0 changelog entry.) In v1.2.0 every RAM test used the same 20
+walking-bit patterns and had one verdict: the chip diagram, or a counted border flash
+before the display existed.
 
 ### Diagnoses that changed
 
@@ -189,7 +190,7 @@ between this version and the original rev. 781220:
 
 ### New Tests (Not in Original)
 
-- **Low RAM Test** (v1.3.0) - Dedicated test for the $0200-$03FF memory region (512 bytes between stack and screen RAM), which previously had no on-screen test of its own (only the blind boot-time bank test covered it). Test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965). Uses four test patterns:
+- **Low RAM Test** (new in 2.0) - Dedicated test for the $0200-$03FF memory region (512 bytes between stack and screen RAM), which previously had no on-screen test of its own (only the blind boot-time bank test covered it). Test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965). Uses four test patterns:
   - `$AA` pattern (10101010) - Detects stuck-high bits on even positions
   - `$55` pattern (01010101) - Detects stuck-low bits on odd positions
   - 247-byte PRN sequence - Detects address bus problems and page confusion (prime-like length ensures non-alignment with 256-byte pages to catch mirrored or crossed address lines)
@@ -224,7 +225,7 @@ The original test logic remains preserved, with new tests inserted at appropriat
 2. **drawLayout** - VIC initialized, screen layout drawn
 3. **zeroPageTest** - Tests $00-$FF (original test)
 4. **stackPageTest** - Tests $0100-$01FF, enables JSR/RTS after passing (original test)
-5. **lowRamTest** - Tests $0200-$03FF with AA/55/PRN patterns (**NEW in v1.3.0**)
+5. **lowRamTest** - Tests $0200-$03FF with AA/55/PRN patterns (**NEW in 2.0**)
 6. **screenRamTest** - Tests $0400-$07FF display memory (original test)
 7. **colorRamTest** - Tests $D800-$DBFF color memory (original test)
 8. **ramTest** - Tests $0800-$0FFF extended RAM (original test)

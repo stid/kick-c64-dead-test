@@ -272,5 +272,5 @@ help:
 	@echo "  make test-mode && make run  # Test RAM failure simulation"
 	@echo "  make test               # Run automated test"
 	@echo "  make release            # Create release package"
-	@echo "  make VERSION=1.3.0 release  # Create release with custom version"
+	@echo "  make VERSION=2.0.1 release  # Create release with custom version"
 	@echo "  make KICKASS_BIN=/path/to/KickAss.jar  # Use custom KickAssembler path"

@@ -28,7 +28,7 @@ The C64 uses **8 RAM chips** (4164 DRAM, 64K x 1-bit each), with each chip provi
 **Memory Regions Tested:**
 - **Zero Page Test**: $00-$FF (all 8 chips)
 - **Stack Page Test**: $0100-$01FF (all 8 chips)
-- **Low RAM Test**: $0200-$03FF (all 8 chips) ← NEW in v1.3.0
+- **Low RAM Test**: $0200-$03FF (all 8 chips) ← NEW in 2.0
 - **Screen RAM Test**: $0400-$07FF (all 8 chips)
 - **Color RAM Test**: $D800-$DBFF (4-bit color RAM, separate chips)
 - **RAM Test**: $0800-$0FFF (all 8 chips)
@@ -75,9 +75,9 @@ The C64 uses **8 RAM chips** (4164 DRAM, 64K x 1-bit each), with each chip provi
 - 8 flashes = U21 (Bit 0)
 - Pattern repeats: flash N times → pause → repeat
 
-### Bus Failures (Continuous fast flashing):
-- Rapid continuous white/black flashing with no pattern
-- No pause between cycles
+### Bus Failures (Continuous flashing, no count):
+- White/black flashing at roughly 8 Hz - visibly faster than the counted flash
+- Never stops, never pauses: there is no count to read
 - Indicates address bus fault (crossed lines, mirroring)
 - NOT a chip failure - check motherboard traces and solder connections
 

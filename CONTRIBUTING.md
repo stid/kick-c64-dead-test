@@ -156,7 +156,7 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
   - v2.0.0: Complete rewrite with AA/55/PRN patterns and error type differentiation
 - **MINOR**: New tests or significant enhancements (backward-compatible)
   - Examples: Adding new test modules, enhanced error reporting, visual improvements
-  - v1.3.0: Low RAM test addition, v1.2.0: SID filter test
+  - v1.2.0: SID filter test addition
 - **PATCH**: Bug fixes and minor improvements
   - Examples: Fixing edge cases, documentation updates, small optimizations
 

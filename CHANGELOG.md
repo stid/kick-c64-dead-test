@@ -90,6 +90,22 @@ Enhanced failure indication during black screen phase:
 - **Complementary coverage** - Different test methodologies for same memory regions
 - **Pattern consistency** - All tests use identical four-phase approach
 
+#### New Tests (folded in from the unreleased 1.3.0)
+The Low RAM test and the project's open-source scaffolding were developed under a 1.3.0
+version bump that was never tagged or released — 2.0.0 superseded it on the same branch a
+day later. Recorded here because 2.0 is the first release to carry any of it.
+
+- **Low RAM Test** - Dedicated test module for the $0200-$03FF region, previously covered only by the blind boot-time bank test (test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965))
+  - Tests 512 bytes between stack page and screen RAM
+  - Four-phase testing: $AA and $55 stuck-bit patterns ("BIT"), a 247-byte PRN sequence for address bus faults and page confusion ("BUS"), and 16 walking bit patterns for chip identification ("BAD")
+  - Prime-like pattern length ensures detection of mirrored/crossed address lines
+- Comprehensive open-source documentation structure
+- Simplified NOTICE.md with copyright and attribution information
+- CONTRIBUTING.md with contributor guidelines
+- GitHub Actions workflow for automated builds
+- Issue and pull request templates
+- Enhanced README with badges and quick start
+
 #### Development Infrastructure
 - **TEST_MODE preprocessor support** - Simulates RAM failures for validation
 - **Hardware testing guide** - Comprehensive real hardware testing documentation
@@ -254,26 +270,6 @@ This release transforms the C64 Dead Test from a basic diagnostic into a profess
 The differentiation between stuck bits, address bus faults, and chip failures is the key innovation. Rather than showing "U21 BAD" for an address bus fault, v2.0 correctly identifies "BUS error" and prevents wasted time replacing a chip that's actually fine.
 
 ---
-
-## [1.3.0] - 2025
-
-### Added
-- **Low RAM Test** - New dedicated test module for the $0200-$03FF region, previously covered only by the blind boot-time bank test (test patterns and methodology suggested by [Sven Petersen](https://github.com/svenpetersen1965))
-  - Tests 512 bytes between stack page and screen RAM
-  - Uses four-phase testing approach:
-    1. $AA pattern (10101010) - detects even-bit stuck failures → "BIT" error
-    2. $55 pattern (01010101) - detects odd-bit stuck failures → "BIT" error
-    3. 247-byte PRN sequence - detects address bus problems and page confusion → "BUS" error
-    4. 16 walking bit patterns - enables specific chip identification → "BAD" error
-  - Prime-like pattern length ensures detection of mirrored/crossed address lines
-  - Error messages differentiate between stuck bits (BIT), address bus faults (BUS), and specific chip failures (BAD)
-  - Completes comprehensive RAM coverage of all Ultimax-accessible memory
-- Comprehensive open-source documentation structure
-- Simplified NOTICE.md with copyright and attribution information
-- CONTRIBUTING.md with contributor guidelines
-- GitHub Actions workflow for automated builds
-- Issue and pull request templates
-- Enhanced README with badges and quick start
 
 ## [1.2.0] - 2024
 
