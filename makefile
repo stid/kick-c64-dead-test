@@ -23,10 +23,23 @@ LOG_FILE = $(BUILD_PATH)/buildlog.txt
 KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
 
 # Version
-VERSION ?= 1.2.0
+VERSION ?= 2.0.0-beta.1
+
+# VICE is a GTK application and aborts at startup with "No GSettings schemas are
+# installed on the system" if it cannot find them. Homebrew on Apple Silicon
+# installs them under /opt/homebrew/share, which is not in the macOS default
+# XDG_DATA_DIRS and which "brew shellenv" does not add - so x64sc crashes unless
+# the shell sets it. Point GLib at them directly when they are present.
+# ?= so an existing setting in the caller's environment wins.
+# scripts/test-mode-validation.sh carries the same guard.
+ifeq ($(shell uname),Darwin)
+  ifneq ($(wildcard /opt/homebrew/share/glib-2.0/schemas/gschemas.compiled),)
+    export GSETTINGS_SCHEMA_DIR ?= /opt/homebrew/share/glib-2.0/schemas
+  endif
+endif
 
 # Phony targets
-.PHONY: all build clean run debug help check-tools test release check version
+.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking test-mode-bank test-mode-prn test-mode-bank-bus
 
 # Default target
 all: build
@@ -58,17 +71,122 @@ build: check-tools $(BUILD_PATH)
 	@echo "  - $(CRT_FILE)"
 	@echo "  - $(BIN_FILE)"
 
-# Run in emulator
-run: build
+# Run in emulator (runs whatever is currently built)
+run:
 	@echo "Starting $(PROJECT_NAME) in VICE..."
 	@command -v $(X64SC) >/dev/null 2>&1 || { echo "Error: x64sc not found. Please install VICE."; exit 1; }
+	@test -f $(CRT_FILE) || { echo "Error: No cartridge file found. Run 'make' or 'make test-mode' first."; exit 1; }
 	@$(X64SC) $(CRT_FILE)
 
-# Run with debug options
-debug: build
+# Build and run in one step
+build-and-run: build run
+
+# Run with debug options (runs whatever is currently built)
+debug:
 	@echo "Starting $(PROJECT_NAME) in VICE with monitor..."
 	@command -v $(X64SC) >/dev/null 2>&1 || { echo "Error: x64sc not found. Please install VICE."; exit 1; }
+	@test -f $(CRT_FILE) || { echo "Error: No cartridge file found. Run 'make' or 'make test-mode' first."; exit 1; }
 	@$(X64SC) -moncommands $(BUILD_PATH)/monitor.txt $(CRT_FILE) 2>/dev/null || $(X64SC) $(CRT_FILE)
+
+# Build with test mode enabled (simulates RAM failure for validation)
+test-mode: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL the Low RAM test!"
+	@echo "Expected: U21 (bit 0) will show as BAD in the chip diagram"
+	@echo ""
+	@echo "Compiling with TEST_MODE_ENABLED defined..."
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@echo "Converting to cartridge format..."
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@echo "Creating binary for EPROM..."
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo ""
+	@echo "TEST MODE build complete!"
+	@echo "This build will show LOW RAM as BAD with U21 chip failure."
+	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
+	@echo ""
+	@echo "Note: No source files modified - test mode uses compile-time flag"
+
+# Build with walking bits test mode enabled (simulates RAM failure in phase 4)
+# Separate from test-mode: an $AA fault halts the test before the walking bits
+# phase runs, so exercising that handler needs a build where AA/55/PRN pass.
+test-mode-walking: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in WALKING BITS TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL the Low RAM walking bits test!"
+	@echo "Expected: BAD message with U21 (bit 0) marked in the chip diagram"
+	@echo ""
+	@echo "Compiling with TEST_MODE_WALKING_ENABLED defined..."
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_WALKING_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@echo "Converting to cartridge format..."
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@echo "Creating binary for EPROM..."
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo ""
+	@echo "WALKING BITS TEST MODE build complete!"
+	@echo "This build exercises the walking bits failure handler."
+	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
+
+# Build with memory bank test mode enabled (simulates a two-bit RAM failure)
+# Separate from the Low RAM modes: this test runs first and halts before any
+# other test, and it produces no screen output - the border flash count is the
+# whole diagnosis, so it is checked by reading the count back, not the screen.
+test-mode-bank: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in MEMORY BANK TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL the Memory Bank test!"
+	@echo "Expected: black screen, border flashes 8 times (bank 8 = U21), repeating"
+	@echo ""
+	@echo "Compiling with TEST_MODE_BANK_ENABLED defined..."
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_BANK_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@echo "Converting to cartridge format..."
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@echo "Creating binary for EPROM..."
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo ""
+	@echo "MEMORY BANK TEST MODE build complete!"
+	@echo "This build exercises the bank decode and flash counter."
+	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
+
+# Build that fails the Low RAM PRN phase, exercising the 'BUS' report:
+# displays BUS and halts WITHOUT marking a chip, because a bus fault is not
+# a chip fault. New behaviour in 2.0.0 - the old tool had no BUS report.
+test-mode-prn: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in LOW RAM BUS TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL a test!"
+	@echo "Expected: LOW RAM shows BUS, chip diagram stays EMPTY (bus fault, not a chip)"
+	@echo ""
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_PRN_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo "LOW RAM BUS TEST MODE build complete!"
+
+# Build that fails the Memory Bank PRN phase, exercising the continuous
+# 'bus fault' border flash. Distinct from test-mode-bank: that one flashes a
+# COUNT identifying a chip, this one flashes with no count at all. Telling the
+# two apart by eye is the whole diagnosis on a machine with no display.
+test-mode-bank-bus: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in MEM BANK BUS TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL a test!"
+	@echo "Expected: black screen, border flashes CONTINUOUSLY with no count"
+	@echo ""
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_BANK_BUS_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo "MEM BANK BUS TEST MODE build complete!"
 
 # Clean build artifacts
 clean:
@@ -123,12 +241,18 @@ help:
 	@echo "Main Targets:"
 	@echo "  all          - Build the project (default)"
 	@echo "  build        - Compile and create .prg, .crt, and .bin files"
-	@echo "  run          - Build and run in VICE emulator"
-	@echo "  debug        - Build and run with VICE monitor"
+	@echo "  run          - Run currently built cartridge in VICE emulator"
+	@echo "  build-and-run - Build and run in one step"
+	@echo "  debug        - Run with VICE monitor (no rebuild)"
 	@echo "  test         - Run automated test in VICE"
 	@echo "  clean        - Remove all build artifacts"
 	@echo ""
 	@echo "Development Targets:"
+	@echo "  test-mode    - Build with simulated RAM failure (Low RAM \$$AA phase, U21 chip)"
+	@echo "  test-mode-walking - Build with simulated RAM failure (Low RAM walking bits phase, U21 chip)"
+	@echo "  test-mode-bank - Build with simulated RAM failure (Memory Bank \$$AA phase, two-bit, U21 chip)"
+	@echo "  test-mode-prn - Build with simulated Low RAM bus fault (BUS, no chip marked)"
+	@echo "  test-mode-bank-bus - Build with simulated Memory Bank bus fault (continuous flash)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
 	@echo "  release      - Create release package (v$(VERSION))"
@@ -144,8 +268,9 @@ help:
 	@echo ""
 	@echo "Examples:"
 	@echo "  make                    # Build the project"
-	@echo "  make run                # Build and run in emulator"
+	@echo "  make build-and-run      # Build and run in emulator"
+	@echo "  make test-mode && make run  # Test RAM failure simulation"
 	@echo "  make test               # Run automated test"
 	@echo "  make release            # Create release package"
-	@echo "  make VERSION=1.3.0 release  # Create release with custom version"
+	@echo "  make VERSION=2.0.1 release  # Create release with custom version"
 	@echo "  make KICKASS_BIN=/path/to/KickAss.jar  # Use custom KickAssembler path"

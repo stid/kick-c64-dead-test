@@ -13,17 +13,27 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
-    
+      uses: actions/checkout@v4
+
+    - name: Check version consistency
+      run: |
+        chmod +x scripts/check-version.sh
+        ./scripts/check-version.sh
+
+    - name: Validate PRN pattern
+      run: |
+        chmod +x scripts/validate-prn-pattern.py
+        python3 scripts/validate-prn-pattern.py
+
     - name: Set up Java
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '11'
     
     - name: Cache KickAssembler
       id: cache-kickass
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: /tmp/KickAssembler
         key: kickass-5.25
@@ -33,9 +43,9 @@ jobs:
       run: |
         mkdir -p /tmp/KickAssembler
         cd /tmp/KickAssembler
-        wget -q http://theweb.dk/KickAssembler/KickAss.zip
-        unzip -q KickAss.zip
-        rm KickAss.zip
+        wget -q https://theweb.dk/KickAssembler/KickAssembler.zip
+        unzip -q KickAssembler.zip
+        rm KickAssembler.zip
     
     - name: Install VICE tools
       run: |
@@ -57,7 +67,7 @@ jobs:
         ls -la bin/
     
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: dead-test-binaries
         path: |
@@ -68,7 +78,7 @@ jobs:
     
     - name: Upload build log
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: build-log
         path: bin/buildlog.txt
@@ -80,10 +90,10 @@ jobs:
     
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dead-test-binaries
         path: bin/
@@ -92,41 +102,152 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y vice xvfb
-    
+
+    - name: Cache C64 ROM images
+      id: cache-c64roms
+      uses: actions/cache@v4
+      with:
+        path: /tmp/c64roms
+        key: c64roms-r46189
+
+    - name: Download C64 ROM images
+      if: steps.cache-c64roms.outputs.cache-hit != 'true'
+      run: |
+        # The Debian/Ubuntu vice package ships WITHOUT the copyrighted C64
+        # ROMs, so x64sc cannot boot the machine and every VICE step here
+        # silently produced nothing. Fetch them from the VICE source tree
+        # (pinned mirror tag). Cached so a raw.githubusercontent hiccup does
+        # not fail every PR - the ROMs are now a hard gate on the build.
+        mkdir -p /tmp/c64roms
+        for f in kernal-901227-03.bin basic-901226-01.bin chargen-901225-01.bin; do
+          curl -sfL --retry 3 --retry-delay 2 -o "/tmp/c64roms/$f" \
+            "https://raw.githubusercontent.com/VICE-Team/svn-mirror/r46189/vice/data/C64/$f"
+        done
+
+    - name: Install C64 ROM images
+      run: |
+        # x64sc looks for the ROMs in the vice package's system data dir.
+        sudo mkdir -p /usr/share/vice/C64
+        sudo cp /tmp/c64roms/*.bin /usr/share/vice/C64/
+        ls -la /usr/share/vice/C64/*.bin
+
     - name: Verify cartridge format
       run: |
         # Use cartconv to verify the cartridge format
-        cartconv -format | grep -q "ulti" || (echo "Ultimax format not supported" && exit 1)
-        cartconv -i bin/dead-test.crt -info || (echo "Invalid cartridge format" && exit 1)
+        cartconv --types | grep -q "ulti" || (echo "Ultimax format not supported" && exit 1)
+        cartconv -f bin/dead-test.crt || (echo "Invalid cartridge format" && exit 1)
     
     - name: Test in VICE (headless)
       run: |
         # Run VICE in headless mode for a short time to verify it loads
-        timeout 10s xvfb-run -a x64sc -default -cartcrt bin/dead-test.crt -warp -exitscreenshot bin/test-screenshot.png || true
-        
-        # Check if screenshot was created (indicates successful load)
+        # Using -limitcycles for clean exit (~985,248 cycles/sec * 10 sec = 10M cycles)
+        # NOTE: +confirmonexit, not "-confirmonexit 0". It takes no value, and the
+        # stray "0" was parsed as a positional argument, making VICE discard every
+        # option after it - including -exitscreenshot.
+        xvfb-run -a x64sc -default -cartcrt bin/dead-test.crt -warp -limitcycles 10000000 +confirmonexit -exitscreenshot bin/test-screenshot.png || true
+
+        # The screenshot is the proof the cartridge actually ran - without
+        # it this step verifies nothing, so its absence is a failure.
         if [ -f bin/test-screenshot.png ]; then
           echo "Dead Test loaded successfully in VICE"
         else
-          echo "Warning: Could not verify Dead Test loading"
+          echo "ERROR: no screenshot produced - cartridge run not verified"
+          exit 1
         fi
     
     - name: Upload test screenshot
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-screenshot
         path: bin/test-screenshot.png
         retention-days: 7
 
+  test-mode:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '11'
+
+    - name: Cache KickAssembler
+      id: cache-kickass
+      uses: actions/cache@v4
+      with:
+        path: /tmp/KickAssembler
+        key: kickass-5.25
+
+    - name: Download KickAssembler
+      if: steps.cache-kickass.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p /tmp/KickAssembler
+        cd /tmp/KickAssembler
+        wget -q https://theweb.dk/KickAssembler/KickAssembler.zip
+        unzip -q KickAssembler.zip
+        rm KickAssembler.zip
+
+    - name: Install VICE
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y vice xvfb
+
+    - name: Cache C64 ROM images
+      id: cache-c64roms
+      uses: actions/cache@v4
+      with:
+        path: /tmp/c64roms
+        key: c64roms-r46189
+
+    - name: Download C64 ROM images
+      if: steps.cache-c64roms.outputs.cache-hit != 'true'
+      run: |
+        # See the identical steps in the test job: the Debian/Ubuntu vice
+        # package ships without the C64 ROMs and x64sc cannot boot without
+        # them.
+        mkdir -p /tmp/c64roms
+        for f in kernal-901227-03.bin basic-901226-01.bin chargen-901225-01.bin; do
+          curl -sfL --retry 3 --retry-delay 2 -o "/tmp/c64roms/$f" \
+            "https://raw.githubusercontent.com/VICE-Team/svn-mirror/r46189/vice/data/C64/$f"
+        done
+
+    - name: Install C64 ROM images
+      run: |
+        sudo mkdir -p /usr/share/vice/C64
+        sudo cp /tmp/c64roms/*.bin /usr/share/vice/C64/
+        ls -la /usr/share/vice/C64/*.bin
+
+    - name: Run TEST_MODE validation
+      run: |
+        export KICKASS_BIN=/tmp/KickAssembler/KickAss.jar
+        export REQUIRE_SCREENSHOT=1
+        chmod +x scripts/test-mode-validation.sh
+        ./scripts/test-mode-validation.sh
+
+    - name: Upload test-mode screenshots
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-mode-screenshots
+        # Both the PNGs and the screen RAM dumps the content check reads.
+        path: screenshots/*
+        if-no-files-found: warn
+        retention-days: 7
+
   release:
-    needs: [build, test]
+    needs: [build, test, test-mode]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: dead-test-binaries
         path: bin/
@@ -137,7 +258,7 @@ jobs:
         tar -czf dead-test-${{ github.ref_name }}.tar.gz bin/*
     
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           dead-test-${{ github.ref_name }}.zip
@@ -145,5 +266,9 @@ jobs:
           bin/dead-test.crt
           bin/dead-test.bin
         draft: false
-        prerelease: false
+        # Any tag carrying a pre-release suffix (v2.0.0-beta.1) publishes as a
+        # pre-release; a plain v2.0.0 publishes as a full release. Without this
+        # a beta tag would be marked "Latest release" no matter what the version
+        # string says, which is the opposite of what tagging a beta is for.
+        prerelease: ${{ contains(github.ref_name, '-') }}
         generate_release_notes: true

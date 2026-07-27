@@ -61,10 +61,21 @@ mainLoop: {
                 inx                     // Start with Color border
                 stx VIC2.BORDERCOLOUR
 
-                // About string
-                ldx #$1c
+                // About string.
+                //
+                // The counter and the string are a lockstep pair: ldx must be
+                // len(strAbout)-1, and the destination offset must leave room
+                // for len chars inside 40 columns. Get either wrong and the
+                // banner is silently truncated or wraps onto row 1 - no crash,
+                // no assembler warning. scripts/check-screen-dump.py reads this
+                // row back and compares it against the VERSION file so CI
+                // catches it.
+                //
+                // "c-64 dead test rev stid 2.0.0-beta.1" = 36 chars, drawn at
+                // column 2, so columns 2-37 with 2 free at each end.
+                ldx #$23
         !:      lda strAbout,x
-                sta VIDEO_RAM+$6,x
+                sta VIDEO_RAM+$2,x
                 dex
                 bpl !-
                 ldx #$04
@@ -112,7 +123,7 @@ mainLoop: {
                 // Zero page works, but still can't use stack
                 jmp stackPageTest       
 
-        stackPageTestDone:              
+        stackPageTestDone:
                 //=========================================================
                 // CRITICAL MILESTONE: Stack test passed!
                 // From this point forward we can use:
@@ -121,10 +132,13 @@ mainLoop: {
                 // - PHP/PLP for status preservation
                 // - Interrupt handlers (if we enabled them)
                 //=========================================================
-                
+
                 // First subroutine call in the entire program!
                 jsr updateCia1Time      // Update timer display
                 // Run remaining tests with full subroutine support
+                jsr lowRamTest          // Test $0200-$03FF (previously untested)
+                jsr updateCia1Time
+
                 jsr screenRamTest       // Test video RAM
                 jsr updateCia1Time      
                 
@@ -183,6 +197,7 @@ mainLoop: {
 #import "./zero_page_test.asm"
 #import "./stack_page_test.asm"
 #import "./cia_timers.asm"
+#import "./low_ram_test.asm"
 #import "./screen_ram_test.asm"
 #import "./color_ram_test.asm"
 #import "./ram_test.asm"

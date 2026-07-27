@@ -54,10 +54,10 @@
 // - Stuck notes: ADSR envelope generator failure
 //=============================================================================
 soundTest: {
-                // Display "SOUND TEST" label on screen at line 8, column 24
+                // Display "SOUND TEST" label on screen at row 8
                 ldx #$09
-        !:      lda strSound,x      
-                sta VIDEO_RAM+$118,x
+        !:      lda strSound,x
+                sta VIDEO_RAM+$140,x
                 dex
                 bpl !-
 

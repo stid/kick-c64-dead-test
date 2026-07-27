@@ -41,7 +41,7 @@ colorRamTest: {
                 // Display "COLOR RAM" test label on screen
                 ldx #$08
         !:      lda srtColor,x      // Print color ram test
-                sta VIDEO_RAM+$c8,x
+                sta VIDEO_RAM+$f0,x
                 dex
                 bpl !-
 
@@ -97,9 +97,9 @@ colorRamTest: {
                 
                 // All color RAM tested successfully - display "OK"
                 lda #$0f                        // "O"
-                sta VIDEO_RAM+$d5
+                sta VIDEO_RAM+$fd
                 lda #$0b                        // "K"
-                sta VIDEO_RAM+$d6
+                sta VIDEO_RAM+$fe
                 rts
 
         colorRamTestFailed:
@@ -107,14 +107,14 @@ colorRamTest: {
                 // Result shows which of the 4 bits are faulty
                 eor colorRamPattern,x
                 tax                             // Save bit failure pattern
-                
+
                 // Display "BAD" error message
                 lda #$02                        // "B"
-                sta VIDEO_RAM+$d5
+                sta VIDEO_RAM+$fd
                 lda #$01                        // "A"
-                sta VIDEO_RAM+$d6
+                sta VIDEO_RAM+$fe
                 lda #$04                        // "D"
-                sta VIDEO_RAM+$d7
+                sta VIDEO_RAM+$ff
                 
                 // Jump to universal failure handler
                 // X register contains the XOR result showing failed bits

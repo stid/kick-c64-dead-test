@@ -26,10 +26,10 @@
 //=============================================================================
 
 filterTest: {
-                // Display "filters test" label on screen
+                // Display "filters test" label on screen at row 9
                 ldx #11
         !:      lda strFilters,x
-                sta VIDEO_RAM+$140,x
+                sta VIDEO_RAM+$168,x
                 dex
                 bpl !-
 
