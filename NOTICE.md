@@ -1,41 +1,20 @@
-# Copyright and Attribution
+# Copyright and attribution
 
-## What This Is
+Based on the Commodore 64 Dead Test rev. 781220, © 1988 Commodore
+Electronics Limited. No claim is made over the original work, and no
+original ROM binary is distributed here. Ported from the disassembly
+published by worldofjani.com (https://blog.worldofjani.com/?p=164).
 
-This is a modern reimplementation of the Commodore 64 Dead Test diagnostic cartridge, created for hardware repair and historical preservation.
+This project's own contributions — the SID filter test, the low-RAM
+test and 2.0 RAM methodology, chip-level failure reporting, build
+system and documentation — are MIT licensed; see LICENSE. That covers
+this project's code only and grants nothing in respect of the original.
 
-## Copyright Status
+RAM test methodology contributed by Sven Petersen
+(https://github.com/svenpetersen1965).
 
-### Original Work
-- **Dead Test rev. 781220** - © 1988 Commodore Electronics Limited
-- Rights likely held by Cloanto Corporation
-- Used here for educational and preservation purposes
+If you hold rights in the original and would like something changed or
+removed, please open an issue and I will act on it promptly.
 
-### Disassembly
-- **worldofjani.com** (2015) - Disassembly for study
-- Source: https://blog.worldofjani.com/?p=164
-
-### This Implementation
-- **stid and contributors** - KickAssembler port and enhancements
-- New features: SID filter test, color bars, enhanced diagnostics
-- Build system, documentation, and code improvements
-
-## Usage
-
-**Permitted:**
-- Personal repair of Commodore 64 computers
-- Educational study of C64 hardware and 6502 assembly
-- Historical preservation efforts
-- Contributing improvements to this repository
-
-**Seek permission for:**
-- Commercial distribution or sales
-- Including in commercial products
-
-## Disclaimer
-
-This software is provided "AS IS" for educational and preservation purposes. Use at your own risk. The authors make no warranty about its suitability for any purpose.
-
----
-
-*This project helps keep vintage Commodore 64 computers running. Please respect the original creators and support preservation efforts.*
+Provided AS IS for repair, education and preservation. Use at your own
+risk.

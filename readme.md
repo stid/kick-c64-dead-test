@@ -229,7 +229,7 @@ The original test logic remains preserved, with new tests inserted at appropriat
 6. **screenRamTest** - Tests $0400-$07FF display memory (original test)
 7. **colorRamTest** - Tests $D800-$DBFF color memory (original test)
 8. **ramTest** - Tests $0800-$0FFF extended RAM (original test)
-9. **fontTest** - Verifies character ROM (original test)
+9. **fontTest** - Copies the custom font from cartridge ROM to $0800 (original test; a load, not a test — the character ROM is not readable in Ultimax mode)
 10. **soundTest** - Tests SID oscillators (original test)
 11. **filtersTest** - Tests SID analog filters (**NEW in v1.2.0**)
 12. Counter updated, border color incremented, loop back to step 2
@@ -286,6 +286,7 @@ You can definitely try to build your [own](http://blog.worldofjani.com/?p=879).
 - [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) - Detailed test algorithms and hardware information
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributors
 - [CHANGELOG.md](CHANGELOG.md) - Version history and changes
+- [LICENSE](LICENSE) - MIT license covering this project's own code
 - [NOTICE.md](NOTICE.md) - Copyright and attribution information
 
 ## Contributing
@@ -298,7 +299,7 @@ We welcome contributions! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ## Copyright & Attribution
 
-Based on Commodore 64 Dead Test rev. 781220 (© 1988 Commodore). See [NOTICE.md](NOTICE.md) for full copyright information and permitted uses.
+This project's own code is MIT licensed — see [LICENSE](LICENSE). It ports the Commodore 64 Dead Test rev. 781220 (© 1988 Commodore), in which no rights are claimed — see [NOTICE.md](NOTICE.md).
 
 ## Potential Bugs
 

@@ -4,7 +4,7 @@ Thank you for your interest in contributing to this Commodore 64 diagnostic tool
 
 ## Before Contributing
 
-Please read [NOTICE.md](NOTICE.md) to understand the copyright status and permitted uses of this project.
+Please read [NOTICE.md](NOTICE.md) to understand what in this project is original work, what is derived from the original Commodore ROM, and how the two are licensed.
 
 ## How to Contribute
 
@@ -132,7 +132,7 @@ src/
 ## Documentation
 
 - Update [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) for algorithm changes
-- Update [README.md](README.md) for user-visible changes
+- Update [readme.md](readme.md) for user-visible changes
 - Add inline comments for complex logic
 - Document any new hardware requirements
 
@@ -160,9 +160,11 @@ We use semantic versioning (MAJOR.MINOR.PATCH):
 - **PATCH**: Bug fixes and minor improvements
   - Examples: Fixing edge cases, documentation updates, small optimizations
 
-## Copyright
+## Copyright and licensing
 
-This project is based on copyrighted work (Commodore 64 Dead Test © 1988). Your contributions are enhancements for educational and preservation purposes. See [NOTICE.md](NOTICE.md) for details.
+By submitting a pull request you agree that your contribution is licensed under the MIT license in [LICENSE](LICENSE).
+
+Parts of `src/` are a port of the Commodore 64 Dead Test rev. 781220 (© 1988 Commodore Electronics Ltd), in which no rights are claimed. See [NOTICE.md](NOTICE.md).
 
 ## Questions?
 

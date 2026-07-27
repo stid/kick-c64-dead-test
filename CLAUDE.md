@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 ## Project Summary
-Commodore 64 hardware diagnostic tool running as Ultimax cartridge ($E000-$FFFF). Tests RAM, ROM, and SID systematically without relying on untested components. Uses visual feedback to identify specific failed chips (U9-U12, U21-U24).
+Commodore 64 hardware diagnostic tool running as Ultimax cartridge ($E000-$FFFF). Tests RAM, VIC-II, CIA and SID systematically without relying on untested components. (No ROM is verified: Ultimax fixes the memory map, so the KERNAL, BASIC and character ROMs are not addressable.) Uses visual feedback to identify specific failed chips (U9-U12, U21-U24).
 
 ## Quick Start
 ```bash
@@ -28,7 +28,7 @@ src/
 │   ├── screen_ram_test.asm  # $0400 display memory
 │   ├── color_ram_test.asm   # $D800 color memory
 │   ├── ram_test.asm          # General RAM testing
-│   ├── font_test.asm         # Character ROM verification
+│   ├── font_test.asm         # Custom font load into $0800 (not a ROM test)
 │   ├── sound_test.asm        # SID chip testing
 │   └── filters_test.asm      # SID filter testing
 ├── u_failure.asm      # Chip failure identification logic
@@ -57,7 +57,7 @@ src/
 6. Screen RAM Test     → Tests $0400 display memory
 7. Color RAM Test      → Tests $D800 color attributes
 8. General RAM Test    → Extended memory testing
-9. Font Test           → Character ROM verification
+9. Font Test           → Custom font copied to $0800 (load, not a test)
 10. Sound/Filter Tests → SID chip testing
 ```
 Border color cycles on each iteration. Tests run continuously with iteration counter.
@@ -81,7 +81,7 @@ Override defaults with: `make VARIABLE=value`
 
 ## References
 
-- **Installation & Prerequisites:** See `README.md`
+- **Installation & Prerequisites:** See `readme.md`
 - **Detailed Test Algorithms:** See `docs/TECHNICAL_DOCUMENTATION.md`
 - **Makefile Options:** Run `make help`
 - **VICE Documentation:** [https://vice-emu.sourceforge.io/](https://vice-emu.sourceforge.io/)
