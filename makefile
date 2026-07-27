@@ -25,6 +25,19 @@ KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
 # Version
 VERSION ?= 2.0.0
 
+# VICE is a GTK application and aborts at startup with "No GSettings schemas are
+# installed on the system" if it cannot find them. Homebrew on Apple Silicon
+# installs them under /opt/homebrew/share, which is not in the macOS default
+# XDG_DATA_DIRS and which "brew shellenv" does not add - so x64sc crashes unless
+# the shell sets it. Point GLib at them directly when they are present.
+# ?= so an existing setting in the caller's environment wins.
+# scripts/test-mode-validation.sh carries the same guard.
+ifeq ($(shell uname),Darwin)
+  ifneq ($(wildcard /opt/homebrew/share/glib-2.0/schemas/gschemas.compiled),)
+    export GSETTINGS_SCHEMA_DIR ?= /opt/homebrew/share/glib-2.0/schemas
+  endif
+endif
+
 # Phony targets
 .PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking
 

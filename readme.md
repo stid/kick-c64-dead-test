@@ -45,6 +45,17 @@ make run
   
   The makefile expects these tools to be in your PATH. Run `make check-tools` to verify everything is properly installed.
 
+  On Apple Silicon, running `x64sc` straight from the shell can abort with
+  `GLib-GIO-ERROR: No GSettings schemas are installed on the system`. Homebrew puts
+  the schemas in `/opt/homebrew/share`, which is not in the macOS default
+  `XDG_DATA_DIRS` and which `brew shellenv` does not add. The makefile and
+  `scripts/test-mode-validation.sh` point VICE at them, so `make run` works either
+  way; to fix it for every GTK app, add this to your shell profile:
+
+  ```bash
+  export XDG_DATA_DIRS="/opt/homebrew/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+  ```
+
 ## Binary Files
 
 Stable releases are published at https://github.com/stid/kick-c64-dead-test/releases. Both CRT and BIN files are available.
