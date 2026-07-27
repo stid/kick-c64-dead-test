@@ -39,7 +39,7 @@ ifeq ($(shell uname),Darwin)
 endif
 
 # Phony targets
-.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking test-mode-bank
+.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking test-mode-bank test-mode-prn test-mode-bank-bus
 
 # Default target
 all: build
@@ -155,6 +155,39 @@ test-mode-bank: check-tools $(BUILD_PATH)
 	@echo "This build exercises the bank decode and flash counter."
 	@echo "Run with: make run  OR  x64sc $(CRT_FILE)"
 
+# Build that fails the Low RAM PRN phase, exercising the 'BUS' report:
+# displays BUS and halts WITHOUT marking a chip, because a bus fault is not
+# a chip fault. New behaviour in 2.0.0 - the old tool had no BUS report.
+test-mode-prn: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in LOW RAM BUS TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL a test!"
+	@echo "Expected: LOW RAM shows BUS, chip diagram stays EMPTY (bus fault, not a chip)"
+	@echo ""
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_PRN_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo "LOW RAM BUS TEST MODE build complete!"
+
+# Build that fails the Memory Bank PRN phase, exercising the continuous
+# 'bus fault' border flash. Distinct from test-mode-bank: that one flashes a
+# COUNT identifying a chip, this one flashes with no count at all. Telling the
+# two apart by eye is the whole diagnosis on a machine with no display.
+test-mode-bank-bus: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in MEM BANK BUS TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL a test!"
+	@echo "Expected: black screen, border flashes CONTINUOUSLY with no count"
+	@echo ""
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_BANK_BUS_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo "MEM BANK BUS TEST MODE build complete!"
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
@@ -218,6 +251,8 @@ help:
 	@echo "  test-mode    - Build with simulated RAM failure (Low RAM \$$AA phase, U21 chip)"
 	@echo "  test-mode-walking - Build with simulated RAM failure (Low RAM walking bits phase, U21 chip)"
 	@echo "  test-mode-bank - Build with simulated RAM failure (Memory Bank \$$AA phase, two-bit, U21 chip)"
+	@echo "  test-mode-prn - Build with simulated Low RAM bus fault (BUS, no chip marked)"
+	@echo "  test-mode-bank-bus - Build with simulated Memory Bank bus fault (continuous flash)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
 	@echo "  release      - Create release package (v$(VERSION))"

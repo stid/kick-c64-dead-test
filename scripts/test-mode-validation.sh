@@ -4,29 +4,34 @@
 # Validates that TEST_MODE builds correctly simulate a RAM failure and that the
 # diagnostic identifies the failing chip.
 #
-# Three builds are validated. Each failure path needs its own build, because
-# tests run in order and the first failure halts the diagnostic:
+# Five builds are validated - one per distinct diagnostic signal the cartridge
+# can produce. Each needs its own build, because tests run in order and the
+# first failure halts the diagnostic:
 #
-#   test-mode          -> Low RAM, $AA phase        -> testFailed_AA
-#   test-mode-walking  -> Low RAM, walking bits     -> testFailed_Walking
-#   test-mode-bank     -> Memory Bank, $AA phase    -> memFailureFlash
+#   test-mode           -> Low RAM $AA        -> "LOW RAM BIT", U21 marked
+#   test-mode-walking   -> Low RAM walking    -> "LOW RAM BAD", U21 marked
+#   test-mode-prn       -> Low RAM PRN        -> "LOW RAM BUS", NO chip marked
+#   test-mode-bank      -> Mem Bank $AA       -> border flashes 8 times
+#   test-mode-bank-bus  -> Mem Bank PRN       -> border flashes continuously
 #
-# Without the walking build that handler is never executed, which is how a bug
+# Without the walking build that handler was never executed, which is how a bug
 # that made it report no failing chip at all went unnoticed.
 #
-# The two Low RAM builds inject a bit 0 fault and are checked on screen, with
-# U21 marked in the chip diagram for both. The status word differs by phase:
+# The three Low RAM builds are checked by reading screen RAM back. BIT/BAD/BUS
+# are three different diagnoses and must not be confused: BUS deliberately marks
+# NO chip, because a bus fault is not a chip fault and blaming one would send a
+# technician to replace a good part.
 #
-#   test-mode          -> "LOW RAM  BIT"  (testFailed_AA reports a stuck bit)
-#   test-mode-walking  -> "LOW RAM  BAD"  (testFailed_Walking reports a chip)
+# The two Memory Bank builds are different in kind. They fail before the display
+# is initialised, so there is nothing on screen: the border flash is the entire
+# diagnosis, and the only feedback available on a machine too broken to draw
+# anything. A COUNT identifies a chip; CONTINUOUS flashing means a bus fault
+# with no chip identified. Both are read back through a probe byte.
 #
-# The Memory Bank build is different in kind. It fails before the display is
-# initialised, so there is nothing on screen to read: the border flash count is
-# the entire diagnosis, and it is the only feedback available on a machine too
-# broken to draw anything. It injects a TWO-bit fault, because the bank decode
-# always handled single-bit faults correctly and mis-reported multi-bit ones.
-# Expected count is 8 (bank 8 = U21, the lowest set bit); the superseded decode
-# produced 1 (U12) - a good chip.
+# test-mode-bank injects a TWO-bit fault deliberately: the bank decode always
+# handled single-bit faults correctly and mis-reported multi-bit ones, so a
+# single-bit injection would pass either way and prove nothing. Expected count
+# is 8 (bank 8 = U21); the superseded decode produced 1 (U12) - a good chip.
 
 set -e
 
@@ -99,6 +104,7 @@ assert_screen() {
     local label="$2"
     local dump="$3"
     local expected="$4"
+    local chips="$5"
 
     # Label addresses shift between builds, so take deadLoop from this build.
     local dead_loop
@@ -151,7 +157,7 @@ assert_screen() {
         return 1
     fi
 
-    if ! python3 scripts/check-screen-dump.py "$dump" "$expected"; then
+    if ! python3 scripts/check-screen-dump.py "$dump" "$expected" "$chips"; then
         echo -e "${RED}❌ Screen contents wrong for $label${NC}"
         return 1
     fi
@@ -172,10 +178,12 @@ assert_screen() {
 # it, it does not compute it.
 #=============================================================================
 run_bank_mode() {
-    local expected="$1"
-    local target="test-mode-bank"
-    local label="memory bank two-bit failure"
-    local dump="$SHOT_DIR/test-mode-bank-probe.bin"
+    local target="$1"
+    local label="$2"
+    local expected="$3"
+    local meaning="$4"
+    local symbol="$5"          # flashLoop (counted) or busFlashLoop (bus fault)
+    local dump="$SHOT_DIR/${target}-probe.bin"
 
     MODES_RUN=$((MODES_RUN + 1))
 
@@ -188,12 +196,15 @@ run_bank_mode() {
     echo "✓ Build successful"
 
     local flash_loop
-    flash_loop=$(grep -o 'flashLoop=\$[0-9a-fA-F]*' bin/main.sym | head -1 | cut -d'$' -f2)
+    # \$ so the shell passes a literal '$' to grep. Anchored on ".label " to
+    # keep "flashLoop" from also matching "busFlashLoop", which is a different
+    # failure signal entirely.
+    flash_loop=$(grep -oE "\.label ${symbol}=\\\$[0-9a-fA-F]+" bin/main.sym | head -1 | cut -d'$' -f2)
     if [ -z "$flash_loop" ]; then
-        echo -e "${RED}❌ Could not find flashLoop in bin/main.sym${NC}"
+        echo -e "${RED}❌ Could not find $symbol in bin/main.sym${NC}"
         exit 1
     fi
-    echo "   Flash loop at \$$flash_loop (from bin/main.sym)"
+    echo "   $symbol at \$$flash_loop (from bin/main.sym)"
 
     local moncmds="/tmp/${target}-moncommands.txt"
     printf 'break $%s\ncommand 1 "save \\"%s/%s\\" 0 07e7 07e7"\n' \
@@ -222,8 +233,8 @@ run_bank_mode() {
     wait "$vice_pid" 2>/dev/null || true
 
     if [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt 3 ]; then
-        echo -e "${RED}❌ No flash-count probe for $label${NC}"
-        echo "   The flash loop was never reached: the Memory Bank test did not fail."
+        echo -e "${RED}❌ No probe written for $label${NC}"
+        echo "   The flash path was never reached: the Memory Bank test did not fail."
         tail -20 "/tmp/vice-${target}.log" 2>/dev/null | sed 's/^/     /'
         exit 1
     fi
@@ -231,25 +242,34 @@ run_bank_mode() {
     local actual
     actual=$(python3 -c "import sys; print(open(sys.argv[1],'rb').read()[2])" "$dump")
     if [ "$actual" != "$expected" ]; then
-        echo -e "${RED}❌ Flash count is $actual, expected $expected${NC}"
-        echo "   The border flashes $actual times, sending a technician to the"
-        echo "   wrong chip. Bank 8 = U21; a count of 1 means bank 1 = U12, which"
-        echo "   is what the superseded decode reported for any multi-bit fault."
+        echo -e "${RED}❌ Probe reads $actual, expected $expected ($meaning)${NC}"
+        if [ "$expected" = "255" ]; then
+            echo "   255 is the sentinel for the bus-fault path, which flashes"
+            echo "   continuously with NO count. A real count here means a page"
+            echo "   confusion fault was reported as a single bad chip."
+        else
+            echo "   The border flashes $actual times, sending a technician to the"
+            echo "   wrong chip. Bank 8 = U21; a count of 1 means bank 1 = U12, which"
+            echo "   is what the superseded decode reported for any multi-bit fault."
+        fi
         exit 1
     fi
 
     SCREENS_VERIFIED=$((SCREENS_VERIFIED + 1))
     SCREENSHOTS_CAPTURED=$((SCREENSHOTS_CAPTURED + 1))
-    echo -e "${GREEN}✓ Flash count is $actual (bank 8 = U21), as expected${NC}"
+    echo -e "${GREEN}✓ Probe reads $actual ($meaning), as expected${NC}"
     echo
 }
 
-# run_mode <make-target> <human label> <screenshot path> <expected status word>
+# run_mode <make-target> <label> <screenshot path> <status word> [chip expectation]
+# chip expectation: U21 (default) or NONE - NONE is correct for a bus fault,
+# which must not blame a chip.
 run_mode() {
     local target="$1"
     local label="$2"
     local shot="$3"
     local expected="$4"
+    local chips="${5:-U21}"
 
     MODES_RUN=$((MODES_RUN + 1))
 
@@ -326,7 +346,7 @@ run_mode() {
     # VICE clearly works at this point, so a wrong screen is a real regression -
     # always a hard failure, not gated on REQUIRE_SCREENSHOT.
     echo -e "${BLUE}🔎 Verifying screen contents for $label...${NC}"
-    if ! assert_screen "$target" "$label" "${shot%.png}-screen.bin" "$expected"; then
+    if ! assert_screen "$target" "$label" "${shot%.png}-screen.bin" "$expected" "$chips"; then
         exit 1
     fi
     SCREENS_VERIFIED=$((SCREENS_VERIFIED + 1))
@@ -335,7 +355,9 @@ run_mode() {
 
 run_mode test-mode         "\$AA phase failure"   "$SHOT_DIR/test-mode-aa.png"      BIT
 run_mode test-mode-walking "walking bits failure" "$SHOT_DIR/test-mode-walking.png" BAD
-run_bank_mode 8
+run_mode test-mode-prn     "Low RAM bus fault"    "$SHOT_DIR/test-mode-prn.png"     BUS NONE
+run_bank_mode test-mode-bank     "memory bank two-bit failure" 8   "bank 8 = U21"               flashLoop
+run_bank_mode test-mode-bank-bus "memory bank bus fault"       255 "continuous flash, no count" busFlashLoop
 
 echo "======================="
 echo
@@ -345,10 +367,10 @@ if [ "$SCREENSHOTS_CAPTURED" -eq "$MODES_RUN" ]; then
     echo
     echo "Summary:"
     echo "  ✓ All $MODES_RUN TEST_MODE builds compiled and ran in VICE"
-    echo "  ✓ Screenshots captured for the two Low RAM modes"
+    echo "  ✓ Screenshots captured for the three Low RAM modes"
     echo "  ✓ Diagnosis verified for $SCREENS_VERIFIED of $MODES_RUN modes:"
-    echo "    Low RAM  - status word and U21 mark read back from screen RAM"
-    echo "    Mem Bank - border flash count read back from the probe"
+    echo "    Low RAM  - status word (BIT/BAD/BUS) and chip marks from screen RAM"
+    echo "    Mem Bank - border flash signal (count vs continuous) from the probe"
 else
     echo -e "${YELLOW}⚠️  TEST_MODE validation INCOMPLETE${NC}"
     echo
@@ -367,9 +389,11 @@ echo
 echo "What was checked automatically, from screen RAM:"
 echo "    - $SHOT_DIR/test-mode-aa.png:      \"LOW RAM\" followed by \"BIT\""
 echo "    - $SHOT_DIR/test-mode-walking.png: \"LOW RAM\" followed by \"BAD\""
-echo "    - both: \"BAD\" marked next to U21 in the chip diagram"
-echo "  The status word differs by design: the \$AA phase reports a stuck bit"
-echo "  (BIT), the walking bits phase reports a failed chip (BAD)."
+ echo "    - $SHOT_DIR/test-mode-prn.png:     \"LOW RAM\" followed by \"BUS\", no chip marked"
+echo "    - the two Memory Bank probes: flash count 8, then the 255 sentinel"
+echo "  The three words are three different diagnoses: BIT is a stuck bit, BAD"
+echo "  a failed chip, BUS an address bus fault - which marks NO chip, because"
+echo "  blaming one would send a technician to replace a good part."
 echo
 echo "Still worth an eyeball: the screenshots show colors, the border, and the"
 echo "rest of the layout, none of which the screen-code check looks at."

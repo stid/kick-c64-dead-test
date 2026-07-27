@@ -293,6 +293,14 @@ memBankTest: {
                 ldy #$00
         verifyPRNLoop:
                 lda $0100,y
+#if TEST_MODE_BANK_BUS_ENABLED
+                // TEST MODE: corrupt the readback so the PRN phase fails,
+                // routing to memBusFailureFlash instead of the counted flash.
+                // Which bits differ is irrelevant here: a PRN mismatch across
+                // pages means page confusion, not a single bad chip, so this
+                // path deliberately flashes continuously with no count.
+                eor #$01
+#endif
                 cmp PrnTestPattern,x
                 bne !fail+
                 lda $0200,y
@@ -595,6 +603,14 @@ memBankTest: {
         // ADDRESS BUS FAILURE FLASH - Continuous fast flashing
         // No chip count pattern - indicates bus fault, not chip fault
         memBusFailureFlash: {
+#if TEST_MODE_BANK_BUS_ENABLED
+                // TEST MODE PROBE: record that the BUS path was taken.
+                // $FF is a sentinel, not a flash count - this path deliberately
+                // has no count, and the distinction between "flashes N times"
+                // and "flashes continuously" is the entire diagnosis here.
+                lda #$ff
+                sta TEST_PROBE
+#endif
                 busFlashLoop:
                         // Flash WHITE
                         lda #$01                // White color

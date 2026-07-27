@@ -201,6 +201,14 @@ lowRamTest: {
         verifyPRNLoop:
                 ldy #$00
                 lda (ZP.tmpDestAddressLow),y    // Read actual value from memory
+#if TEST_MODE_PRN_ENABLED
+                // TEST MODE: corrupt the readback so the PRN phase fails.
+                // This exercises testFailed_PRN, which reports "BUS" and halts
+                // WITHOUT marking any chip - a bus fault is not a chip fault.
+                // The value flipped does not matter: unlike the other handlers
+                // this one never decodes which bits differ.
+                eor #$01
+#endif
                 cmp PrnTestPattern,x            // Compare with expected pattern
                 bne !fail+                      // Branch to nearby intermediate label
 
