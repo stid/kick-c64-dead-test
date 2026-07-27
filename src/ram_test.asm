@@ -47,9 +47,11 @@
 //
 // On Success: Displays "OK" on screen
 // On Failure: Displays "BIT" (data pattern) or "BAD" (walking bits), marks the
-//             failed chip(s) in the motherboard diagram via UMarkChips, and
-//             CONTINUES with the remaining tests (unlike the halting tests,
-//             byte-by-byte testing already pinpointed the failing address).
+//             failed chip(s) in the motherboard diagram via UMarkChips, then
+//             RETURNS so the remaining test MODULES still run (unlike the
+//             halting tests). Note this abandons the rest of $0800-$0FFF: the
+//             scan stops at the first bad byte, which byte-by-byte testing has
+//             already pinpointed.
 //=============================================================================
 ramTest: {
                 // Display "RAM TEST" label on screen
@@ -215,9 +217,10 @@ ramTest: {
                 sta VIDEO_RAM+$126
                 lda #$04         // Screen code for "D"
                 sta VIDEO_RAM+$127
-                // Test continues rather than halting - byte-by-byte testing
-                // already pinpointed the address, and running the remaining
-                // tests shows whether the failure is isolated or widespread.
+                // Returns rather than halting - byte-by-byte testing already
+                // pinpointed the address, and running the remaining test
+                // modules shows whether the failure is isolated or widespread.
+                // The rest of $0800-$0FFF is not scanned.
                 jsr UMarkChips   // Mark failed chip(s) in the diagram
                 rts
 }

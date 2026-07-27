@@ -344,7 +344,9 @@ The diagnostic maintains CIA timers for:
 **RAM Test Failure** (byte-by-byte test, $0800-$0FFF):
 
 - Display "BIT" (data patterns, including PRN) or "BAD" (walking bits)
-- Mark failed chip(s) red in the diagram, then CONTINUE with remaining tests
+- Mark failed chip(s) red in the diagram, then return so the remaining test
+  modules still run. The scan stops at the first bad byte, so the rest of
+  $0800-$0FFF is not checked on that pass
 - Never reports "BUS": a single-address write/readback cannot observe a bus
   fault (an aliased write reads back through the same alias), so a PRN
   mismatch here is a pattern-sensitive data fault

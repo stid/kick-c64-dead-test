@@ -195,7 +195,8 @@ Plus **red "BAD" indicators** in the chip diagram box showing the specific chip 
 Note: RAM TEST (the byte-by-byte test) never reports BUS - its single-address
 write/readback cannot observe bus faults, so a PRN mismatch there is reported
 as BIT. Unlike the other tests it also does not halt: it marks the chip
-diagram and lets the remaining tests run.
+diagram and lets the remaining test modules run. It does stop scanning at the
+first bad byte, so the rest of $0800-$0FFF is not checked on that pass.
 
 ### Test Patterns and What They Detect
 

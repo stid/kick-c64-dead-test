@@ -13,8 +13,11 @@
 # Without the second build the walking bits handler is never executed, which
 # is how a bug that made it report no failing chip at all went unnoticed.
 #
-# Expected on screen for both: "LOW RAM  BAD" with U21 marked in the chip
-# diagram (the injected fault is bit 0, which is U21).
+# Expected on screen, with U21 marked in the chip diagram for both (the
+# injected fault is bit 0, which is U21). The status word differs by phase:
+#
+#   test-mode          -> "LOW RAM  BIT"  (testFailed_AA reports a stuck bit)
+#   test-mode-walking  -> "LOW RAM  BAD"  (testFailed_Walking reports a chip)
 
 set -e
 
@@ -173,8 +176,11 @@ fi
 echo
 echo "Manual verification (the part no automated check here covers):"
 echo "  Open the screenshots and confirm each shows:"
-echo "    - \"LOW RAM\" followed by \"BAD\""
-echo "    - \"BAD\" marked next to U21 in the chip diagram"
+echo "    - $SHOT_DIR/test-mode-aa.png:      \"LOW RAM\" followed by \"BIT\""
+echo "    - $SHOT_DIR/test-mode-walking.png: \"LOW RAM\" followed by \"BAD\""
+echo "    - both: \"BAD\" marked next to U21 in the chip diagram"
+echo "  The status word differs by design: the \$AA phase reports a stuck bit"
+echo "  (BIT), the walking bits phase reports a failed chip (BAD)."
 echo "  An empty chip diagram means the failing chip was not identified."
 echo
 

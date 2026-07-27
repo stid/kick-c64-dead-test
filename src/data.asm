@@ -96,6 +96,11 @@ PrnTestPattern:
 // $0100 through PrnTestPattern+14 for $0F00) with index 0-246, so reads reach
 // up to PrnTestPattern+260. The extension keeps those reads equal to
 // PRN[(base+index) mod 247] without a runtime modulo.
+//
+// The label looks unused - no instruction references it, the reads go through
+// PrnTestPattern+14,x - but scripts/validate-prn-pattern.py locates these bytes
+// BY NAME to check they still repeat the first 14. Do not remove or rename it
+// without updating that script.
 PrnTestPatternExt:
                 .byte $eb,$24,$ed,$46,$2f,$a8,$b1,$4a,$73,$2c,$75,$4e,$b7,$b0
 
