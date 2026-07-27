@@ -7,7 +7,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-## [2.0.0] - 2025 - "Professional Diagnostics Generation"
+## [2.0.0-beta.1] - 2025 - "Professional Diagnostics Generation"
 
 ### 🎯 Why Version 2.0?
 

@@ -61,10 +61,21 @@ mainLoop: {
                 inx                     // Start with Color border
                 stx VIC2.BORDERCOLOUR
 
-                // About string
-                ldx #$1c
+                // About string.
+                //
+                // The counter and the string are a lockstep pair: ldx must be
+                // len(strAbout)-1, and the destination offset must leave room
+                // for len chars inside 40 columns. Get either wrong and the
+                // banner is silently truncated or wraps onto row 1 - no crash,
+                // no assembler warning. scripts/check-screen-dump.py reads this
+                // row back and compares it against the VERSION file so CI
+                // catches it.
+                //
+                // "c-64 dead test rev stid 2.0.0-beta.1" = 36 chars, drawn at
+                // column 2, so columns 2-37 with 2 free at each end.
+                ldx #$23
         !:      lda strAbout,x
-                sta VIDEO_RAM+$6,x
+                sta VIDEO_RAM+$2,x
                 dex
                 bpl !-
                 ldx #$04

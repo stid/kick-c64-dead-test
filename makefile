@@ -23,7 +23,7 @@ LOG_FILE = $(BUILD_PATH)/buildlog.txt
 KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
 
 # Version
-VERSION ?= 2.0.0
+VERSION ?= 2.0.0-beta.1
 
 # VICE is a GTK application and aborts at startup with "No GSettings schemas are
 # installed on the system" if it cannot find them. Homebrew on Apple Silicon

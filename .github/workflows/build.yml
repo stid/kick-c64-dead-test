@@ -258,7 +258,7 @@ jobs:
         tar -czf dead-test-${{ github.ref_name }}.tar.gz bin/*
     
     - name: Create Release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         files: |
           dead-test-${{ github.ref_name }}.zip

@@ -105,7 +105,7 @@ PrnTestPatternExt:
                 .byte $eb,$24,$ed,$46,$2f,$a8,$b1,$4a,$73,$2c,$75,$4e,$b7,$b0
 
 .encoding       "screencode_mixed"
-strAbout:       .text "c-64 dead test rev stid 2.0.0"
+strAbout:       .text "c-64 dead test rev stid 2.0.0-beta.1"
 strCount:       .text "count"
 strZero:        .text "zero page"
 strStack:       .text "stack page"
