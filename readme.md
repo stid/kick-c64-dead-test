@@ -6,13 +6,14 @@
 
 > **Quick Start**: Download the [latest release](https://github.com/stid/kick-c64-dead-test/releases) and burn `dead-test.bin` to an EPROM, or run `dead-test.crt` in VICE.
 
-> **2.0.0-beta.1 is a pre-release.** Every version up to 1.3.0 only *added* tests to the
-> original dead test. This one changes how existing tests decide which chip failed and how
-> they report it, so a machine you have tested before can give a different answer. The
-> changes are believed correct and each one is covered by an automated test, but they have
-> been verified only against *injected* faults in an emulator — see
-> [Beta status](#beta-status-what-is-and-is-not-verified). If you diagnose real hardware
-> with it, 1.3.0 remains available and unchanged.
+> **2.0.0-beta.1 is a pre-release.** The last published release is
+> [v1.2.0](https://github.com/stid/kick-c64-dead-test/releases) (2020). Against that, 2.0
+> rewrites how every RAM test decides and reports a failure — and it changes one existing
+> diagnosis outright: the border flash count for a multi-bit fault. Each new signal is
+> covered by an automated test, but all of them are verified against *injected* faults in
+> an emulator, never against real failing hardware. See
+> [Beta status](#beta-status-what-is-and-is-not-verified). v1.2.0 remains available if you
+> would rather diagnose with the version that has years of field use behind it.
 
 A comprehensive hardware diagnostic tool for the Commodore 64, designed to test all critical components even when the system is severely damaged. This is an enhanced KickAssembler port of the **COMMODORE 64 Dead Test rev. 781220**, based on the disassembly by [worldofjani.com](https://blog.worldofjani.com/?p=164).
 
@@ -24,8 +25,8 @@ A comprehensive hardware diagnostic tool for the Commodore 64, designed to test 
 - ✅ **Enhanced visual feedback** - Color reference bar and border cycling
 - ✅ **SID filter test** - Detects analog filter failures missed by other tests
 - ✅ **Modern codebase** - Modular structure with extensive documentation
-- ⚠️ **Changed diagnosis logic** - up to v1.x the project only *added* tests. v2.0 is the
-  first release to change how existing tests decide and report failures. See
+- ⚠️ **Rewritten diagnosis logic** - v1.x only *added* tests to the original. v2.0 is the
+  first release to change how a failure is diagnosed and reported. See
   [What changed in 2.0](#what-changed-in-20-read-this-before-trusting-a-diagnosis).
 - ✅ **Open development** - Clear attribution and contribution guidelines
 
@@ -111,26 +112,36 @@ The dead test should start with the familiar black screen. During this phase, th
 
 ## What changed in 2.0 (read this before trusting a diagnosis)
 
-If you have used 1.3.0 or the original rev. 781220, these are the cases where the same
-broken machine now gives you a different answer. Everything here is a deliberate change,
-not a side effect.
+The baseline is **v1.2.0**, the last published release. (The CHANGELOG describes a 1.3.0,
+but it was never tagged or released — no one has it.) In v1.2.0 every RAM test used the
+same 20 walking-bit patterns and had one verdict: the chip diagram, or a counted border
+flash before the display existed.
 
-| Situation | 1.3.0 said | 2.0 says | Why |
+### The one diagnosis that changed
+
+| Situation | v1.2.0 said | 2.0 says | Why |
 |---|---|---|---|
-| Walking-bits failure in Zero Page, Stack Page or Low RAM | "BAD" over an **empty** chip diagram | "BAD" with the failing chip marked | The handler XORed a value against itself and always got 0, so no chip bit was ever set. It never identified a chip. |
-| Walking-bits failure in the Memory Bank test | Border flashed **8 times** (U21) for *every* failure | Flashes the bank that actually failed | Same root cause. On a machine with no display the flash count is the whole diagnosis, so this named the wrong chip with full confidence. |
-| Two or more bits bad at once, Memory Bank test | Border flashed **once** (U12) whatever the fault | Flashes the lowest failing bank | The old decode tested "exactly this one bit" per bank and fell through to bank 1 for *any* multi-bit difference — blaming a chip that may be fine. |
-| PRN failure in RAM TEST ($0800-$0FFF) | "BUS" | "BIT", chip marked, testing continues | That test writes and reads back through the *same* address, so an aliased write reads back through the same alias. It cannot observe a bus fault, so it should never have claimed one. |
-| Address line A8-A11 swapped or mirrored | Memory Bank PRN phase **passed** | Fails, continuous border flash | The PRN phase wrote identical bytes to all 15 pages, so page confusion could not produce a mismatch — the exact fault class the phase exists to catch. Each page now gets a different sequence. |
+| **Two or more data bits bad at once**, Memory Bank test (black screen) | Border flashed **once** — U12 — whatever the actual fault | Flashes the bank of the lowest failing bit | The old decode asked "is exactly this one bit set?" for each bank in turn and fell through to bank 1 when none matched. Any multi-bit difference therefore reported U12, a chip that may be perfectly good. Single-bit faults were decoded correctly and still are, so only multi-bit machines see a different count. |
 
-Two failure signals are **new in 2.0** and have no equivalent in the original — if you have
-never seen them, that is why:
+If you have a machine that flashed once under v1.2.0, that reading was only trustworthy if
+exactly one bit was bad. Re-test it with 2.0.
 
-- **"BUS"** displayed with the chip diagram left deliberately blank. A bus fault is not a
-  chip fault; marking a chip would send you to replace a good part.
-- **Continuous border flashing with no count**, during the black-screen phase. A counted
-  flash identifies a chip; continuous flashing means page confusion with no single chip to
-  blame.
+### Everything else is new, not changed
+
+These have no v1.2.0 equivalent, so there is no old answer to compare against — but they
+are signals you have not seen from this cartridge before:
+
+- **"BIT" / "BUS" / "BAD"** as three distinct verdicts. v1.2.0 had one failure display.
+  BIT is a stuck bit, BAD a chip identified by walking bits, BUS an address bus fault.
+- **"BUS" leaves the chip diagram deliberately blank.** A bus fault is not a chip fault;
+  marking a chip would send you to replace a good part. An empty diagram under BUS is the
+  correct result, not a failure to identify.
+- **Continuous border flashing with no count**, during the black screen. A counted flash
+  identifies a chip; continuous flashing means page confusion with no single chip to blame.
+- **AA/55/PRN pattern phases** in every RAM test, where v1.2.0 used walking bits alone.
+  The PRN phase can catch swapped or mirrored address lines that walking bits cannot.
+- **A dedicated Low RAM test** ($0200-$03FF), which had no test of its own.
+- **RAM TEST marks the chip diagram and keeps going** instead of stopping silently.
 
 ## Beta status: what is and is not verified
 
