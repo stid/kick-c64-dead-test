@@ -117,14 +117,21 @@ but it was never tagged or released — no one has it.) In v1.2.0 every RAM test
 same 20 walking-bit patterns and had one verdict: the chip diagram, or a counted border
 flash before the display existed.
 
-### The one diagnosis that changed
+### Diagnoses that changed
 
 | Situation | v1.2.0 said | 2.0 says | Why |
 |---|---|---|---|
-| **Two or more data bits bad at once**, Memory Bank test (black screen) | Border flashed **once** — U12 — whatever the actual fault | Flashes the bank of the lowest failing bit | The old decode asked "is exactly this one bit set?" for each bank in turn and fell through to bank 1 when none matched. Any multi-bit difference therefore reported U12, a chip that may be perfectly good. Single-bit faults were decoded correctly and still are, so only multi-bit machines see a different count. |
+| **Any failure in Zero Page or Stack Page** | "BAD" over a completely **empty** chip diagram, then halt | "BAD" with the failing chip marked | Those two tests held the *expected* byte in the accumulator and compared it against memory. The failure handler then XORed that value against itself, always got zero, and so marked no chip at all. They never identified a chip — for any fault, on any machine. |
+| **Any failure in RAM TEST ($0800-$0FFF)** | "BAD" alone, no chip marked | "BIT" or "BAD" **with the chip marked**, and testing continues | Same shape: the failing-bit mask was computed and then discarded. |
+| **Two or more data bits bad at once**, Memory Bank test (black screen) | Border flashed **once** — U12 — whatever the actual fault | Flashes the bank of the lowest failing bit | The old decode asked "is exactly this one bit set?" for each bank in turn and fell through to bank 1 when none matched. Any multi-bit difference reported U12, a chip that may be perfectly good. Single-bit faults decoded correctly then and now, so only multi-bit machines see a different count. |
 
-If you have a machine that flashed once under v1.2.0, that reading was only trustworthy if
-exactly one bit was bad. Re-test it with 2.0.
+If you diagnosed a machine with v1.2.0 and got "BAD" with nothing marked in the diagram,
+that was not a machine too broken to identify — the tool could not mark a chip in those
+tests at all. Worth re-testing.
+
+Note the Memory Bank flash reports **one** chip even when several bits are bad, unlike the
+on-screen tests which mark all of them. After replacing the chip it names, it will flash
+for the next one. Treat it as sequential, not a complete verdict.
 
 ### Everything else is new, not changed
 
@@ -140,8 +147,21 @@ are signals you have not seen from this cartridge before:
   identifies a chip; continuous flashing means page confusion with no single chip to blame.
 - **AA/55/PRN pattern phases** in every RAM test, where v1.2.0 used walking bits alone.
   The PRN phase can catch swapped or mirrored address lines that walking bits cannot.
-- **A dedicated Low RAM test** ($0200-$03FF), which had no test of its own.
-- **RAM TEST marks the chip diagram and keeps going** instead of stopping silently.
+- **A dedicated Low RAM test** ($0200-$03FF), which had no test of its own. (The region
+  was not *untested* before — the boot-time bank test covers $0200 and $0300. What is new
+  is a byte-by-byte address walk over it.)
+
+### Two things that will look wrong but are not
+
+- **Every test below Low RAM moved down one row.** The new "LOW RAM" line sits at row 4,
+  pushing SCREEN RAM, COLOR RAM, RAM TEST, SOUND and FILTERS down one each. If you compare
+  a 2.0 screen against an old photo, this is the first difference you will notice.
+- **Chip marks now persist across iterations.** RAM TEST is the only test that marks the
+  diagram and keeps running, and the end-of-iteration screen clear covers $0400-$062E while
+  the diagram sits at $0699-$071E — outside it. So marks stay up and accumulate while the
+  counter increments and later tests print OK. Under v1.2.0 a marked diagram always meant
+  "halted, replace this chip"; now it can also mean "one bad byte in $0800-$0FFF, still
+  testing". Power-cycle to clear them.
 
 ## Beta status: what is and is not verified
 

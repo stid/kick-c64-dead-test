@@ -70,8 +70,8 @@ Enhanced failure indication during black screen phase:
   - Pattern: flash N times → pause → repeat
   - Example: 8 flashes = U21 (bit 0), 1 flash = U12 (bit 7)
 
-- **Bus failures:** Continuous rapid flashing with no pattern
-  - Fast white/black cycling with no pause
+- **Bus failures:** Continuous flashing with no count and no pause
+  - ~8 Hz white/black cycling, visibly faster than the ~3 Hz counted flash
   - Distinguishes system faults from chip faults
   - Prevents misleading chip identification
 
@@ -95,7 +95,12 @@ Enhanced failure indication during black screen phase:
 - **Hardware testing guide** - Comprehensive real hardware testing documentation
 - **Enhanced comments** - Extensive methodology explanations in source
 
-### 🐛 Fixed Before Release
+### 🐛 Fixed During 2.0 Development (never shipped)
+
+The bugs below were introduced while building 2.0 and fixed before release. **None of them
+existed in v1.2.0** — they are recorded for development history, not as changes users will
+notice. For what actually changed against the last published release, see "What changed in
+2.0" in the readme.
 
 #### Walking bits reported the wrong chip
 The walking bits verify loops held the *expected* pattern in the accumulator and
@@ -104,11 +109,13 @@ used `cmp <memory>`, so at the failure branch the accumulator held
 `eor MemTestPattern,x`, XORing a value with itself and always producing 0.
 
 - Memory Bank Test reached `memFailureFlash` with 0, fell through to `ldx #$08`,
-  and reported Bank 8 / U21 for **every** failure. On a dead machine the flash
-  count is the only diagnostic available, so this named the wrong chip with
-  full confidence.
+  and reported Bank 8 / U21 for **every** failure. This was introduced in 2.0's
+  rewrite; v1.2.0's bank test already read memory into the accumulator first and
+  decoded single-bit failures correctly.
 - Zero Page, Stack Page and Low RAM reached `UFailed` with 0, so `failCheck`
-  highlighted no chip at all: "BAD" over an empty chip diagram.
+  highlighted no chip at all: "BAD" over an empty chip diagram. For Zero Page and
+  Stack Page this bug DID ship in v1.2.0 — it is listed as a genuine user-visible
+  fix in the readme, not merely a development-time slip.
 
 Fixed by reading the actual value into the accumulator before comparing against
 the expected pattern (`lda <memory>` / `cmp MemTestPattern,x`) — the ordering the
@@ -219,17 +226,22 @@ the count now stays in X explicitly.
 
 ### 📈 Statistics
 
-- 10 files changed
-- 1,020 insertions(+), 299 deletions(-)
-- 16 commits since 1.3.0
+- 27 files changed
+- 3,580 insertions(+), 401 deletions(-)
+- 50 commits since the last published release (v1.2.0)
 - All core RAM test modules rewritten
 - 100% of RAM tests now use AA/55/PRN methodology
 
 ### 🔄 Migration Notes
 
-**Backward Compatibility:** Test sequence unchanged - all tests run in the same order as v1.x
+**Backward Compatibility:** The original tests still run in their original order, but a new
+Low RAM test is inserted after the stack test, so every test below it moves down one screen
+row. Diagnoses changed too — see "What changed in 2.0" in the readme before comparing a 2.0
+screen against an older one.
 
-**Output Changes:** Error messages now differentiate failure types (BIT/BUS/BAD) instead of showing only "BAD"
+**Output Changes:** Error messages now differentiate failure types (BIT/BUS/BAD) instead of
+showing only "BAD". RAM TEST additionally marks the failing chip and continues rather than
+stopping, so a marked chip diagram no longer implies the machine has halted.
 
 **Visual Changes:** Memory Bank Test flash patterns now distinguish chip vs bus failures
 
