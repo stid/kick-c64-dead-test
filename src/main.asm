@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2020-2026 stid and contributors
+//
+// Ported from Commodore 64 Dead Test rev. 781220, (C) 1988 Commodore Electronics Ltd.
+// Structure, labels, constants and comments here are this project's work and are
+// MIT licensed. The underlying algorithm, test sequence and data are Commodore's
+// and are not licensed by this project. See NOTICE.md.
+
 #importonce
 //=============================================================================
 // COMMODORE 64 DEAD TEST DIAGNOSTIC - MAIN ENTRY POINT

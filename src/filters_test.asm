@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: MIT
+// SPDX-FileCopyrightText: 2020-2026 stid and contributors
+//
+// Original work. See NOTICE.md.
+
 #importonce
 #import "./data.asm"
 #import "./macros.asm"
