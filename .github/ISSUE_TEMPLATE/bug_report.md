@@ -12,7 +12,7 @@ A clear and concise description of the bug.
 ## Hardware/Software Configuration
 - **C64 Model**: [e.g., C64, C64C, C128 in C64 mode]
 - **RAM Configuration**: [e.g., stock, expanded]
-- **Diagnostic Version**: [e.g., v1.2.0]
+- **Diagnostic Version**: [e.g., v2.0.0-beta.1]
 - **Testing Method**: [Real hardware / VICE emulator]
 - **VICE Version** (if applicable): [e.g., 3.7]
 
@@ -36,11 +36,12 @@ If applicable, add screenshots or photos to help explain the problem.
 
 ## Test Results
 ```
-Zero Page:    [OK/BAD]
-Stack:        [OK/BAD]
+Zero Page:    [OK/BIT/BUS/BAD]
+Stack:        [OK/BIT/BUS/BAD]
+Low RAM:      [OK/BIT/BUS/BAD]
 Screen RAM:   [OK/BAD]
 Color RAM:    [OK/BAD]
-RAM Test:     [OK/BAD]
+RAM Test:     [OK/BIT/BAD]
 Sound Test:   [Passed/Failed/No Sound]
 Filter Test:  [Passed/Failed/No Sound]
 ```

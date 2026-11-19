@@ -136,7 +136,7 @@ mainLoop: {
                 // First subroutine call in the entire program!
                 jsr updateCia1Time      // Update timer display
                 // Run remaining tests with full subroutine support
-                jsr lowRamTest          // Test $0200-$03FF (previously untested)
+                jsr lowRamTest          // Test $0200-$03FF byte by byte
                 jsr updateCia1Time
 
                 jsr screenRamTest       // Test video RAM
@@ -148,13 +148,13 @@ mainLoop: {
                 jsr ramTest             // Extended RAM test
                 jsr updateCia1Time
                 
-                jsr fontTest            // Verify character ROM access
+                jsr fontTest            // Copy custom font to $0800 (a load, not a test)
                 jsr updateCia1Time
                 
                 jsr soundTest           // Test SID oscillators
                 jsr updateCia1Time
                 
-                jsr filterTest          // Test SID filters (your addition)
+                jsr filterTest          // Test SID filters (added in v1.2.0)
 
                 // All tests complete - prepare for next iteration
                 // Increment test counter in BCD mode for easy display

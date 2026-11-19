@@ -246,6 +246,10 @@ When a RAM test fails, the diagnostic displays specific error messages to help i
 | **BUS** | Address bus fault | Crossed, shorted, or open address lines (detected by PRN pattern) | ❌ No diagram | Check address line connections and solder joints |
 | **BAD** | Specific chip failure | Individual chip identified by walking bits test | ✅ Shows failed chip(s) | Replace identified RAM chip(s) |
 
+### Which boards the chip names apply to
+
+The chip diagram and the flash counts name U9-U12 and U21-U24, the eight 4164 RAM chips of the long C64 boards (ASSY 250407, 250425, 250466). On boards with different RAM chips, such as the 250469 short board, the tests still run and still find the failing data bit, but those U-numbers do not exist there.
+
 ### Memory Bank Test Flash Patterns
 
 During the initial black screen phase (~10 seconds), failures are indicated by border flashing:

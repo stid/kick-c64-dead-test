@@ -7,13 +7,17 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-## [2.0.0-beta.1] - 2025 - "Professional Diagnostics Generation"
+## [2.0.0-beta.1] - 2026-07-27
 
-### 🎯 Why Version 2.0?
+### Why version 2.0?
 
-This release represents a **paradigm shift** from failure detection to root cause diagnosis. Every RAM test module has been fundamentally rewritten using scientifically rigorous AA/55/PRN patterns, enabling differentiation between stuck bits, address bus faults, and specific chip failures. The methodology aligns with modern memory testing standards (MATS+, galloping patterns) and provides professional-grade diagnostic capability comparable to MemTest86.
+v1.x only added tests to the original Dead Test. 2.0 rewrites how every RAM test decides and
+reports a failure: each one now runs AA, 55, a 247-byte PRN sequence and walking bits, and
+reports a stuck bit, an address bus fault or an identified chip as three different verdicts.
 
-**In short:** v1.x detected failures and showed which chip. v2.0 diagnoses root causes and tells you exactly what's wrong and why.
+This is a pre-release. Every failure signal is covered by an automated test, but only against
+faults injected in an emulator, not against real failing hardware. See "Beta status" in the
+readme.
 
 ### ✨ Major Enhancements
 
@@ -214,39 +218,10 @@ failing chip is always reported. The flash loop also recovered its count from
 the accumulator only by accident of `LongDelayLoop`'s TXA/TAX save/restore;
 the count now stays in X explicitly.
 
-### 📊 Impact & Benefits
-
-#### For Users
-- **Root cause diagnosis** - Know exactly what failed and why, not just that something failed
-- **Prevents misdiagnosis** - Address bus faults no longer show as chip failures
-- **Professional confidence** - Multiple verification passes with different methodologies
-- **Better repair guidance** - Specific actions for each error type
-
-#### For Technicians
-- **Time savings** - Replace the right component the first time
-- **Accurate chip identification** - XOR-based bit mapping is mathematically precise
-- **System-level fault detection** - PRN pattern catches issues beyond chip failures
-- **Multiple confirmations** - Redundant testing increases diagnostic confidence
-
-#### Technical Excellence
-- **Industry alignment** - Follows MemTest86, MATS+, and galloping pattern practices
-- **Scientific rigor** - Pattern selection based on failure mode analysis
-- **Comprehensive coverage** - Four distinct failure detection mechanisms
-- **Professional grade** - Diagnostic capability comparable to commercial tools
-
 ### 🙏 Credits & Attribution
 
 - **AA/55/PRN Methodology & 247-byte pattern:** [Sven Petersen](https://github.com/svenpetersen1965)
 - **Implementation & testing:** Project maintainers and contributors
-- **Inspiration:** Modern memory testing standards (MemTest86, MATS+, IEEE 1149.1)
-
-### 📈 Statistics
-
-- 27 files changed
-- 3,580 insertions(+), 401 deletions(-)
-- 50 commits since the last published release (v1.2.0)
-- All core RAM test modules rewritten
-- 100% of RAM tests now use AA/55/PRN methodology
 
 ### 🔄 Migration Notes
 
@@ -263,15 +238,9 @@ stopping, so a marked chip diagram no longer implies the machine has halted.
 
 **No Hardware Changes Required:** Binary is compatible with all v1.x cartridge configurations
 
-### 🎓 Why This Matters
-
-This release transforms the C64 Dead Test from a basic diagnostic into a professional-grade hardware testing suite. The AA/55/PRN pattern methodology isn't just theoretical improvement - it provides **practical diagnostic value** that helps users identify and fix real hardware failures more accurately and efficiently than ever before.
-
-The differentiation between stuck bits, address bus faults, and chip failures is the key innovation. Rather than showing "U21 BAD" for an address bus fault, v2.0 correctly identifies "BUS error" and prevents wasted time replacing a chip that's actually fine.
-
 ---
 
-## [1.2.0] - 2024
+## [1.2.0] - 2020-07-12
 
 ### Added
 - **SID Filter Test** - New test module for analog filter components
@@ -284,9 +253,8 @@ The differentiation between stuck bits, address bus faults, and chip failures is
 ### Changed
 - Improved code organization with better modularization
 - Enhanced documentation and comments throughout codebase
-- Updated CLAUDE.md for better AI agent interaction
 
-## [1.1.0] - 2023
+## [1.1.0] - 2020-05-01
 
 ### Added
 - **Color Reference Bar** - Visual color palette at bottom of screen
