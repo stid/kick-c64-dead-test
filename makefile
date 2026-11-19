@@ -39,7 +39,7 @@ ifeq ($(shell uname),Darwin)
 endif
 
 # Phony targets
-.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking test-mode-bank test-mode-prn test-mode-prn-chip test-mode-bank-bus test-mode-bank-prn-chip
+.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking test-mode-bank test-mode-prn test-mode-prn-chip test-mode-bank-bus test-mode-bank-prn-chip test-mode-color
 
 # Default target
 all: build
@@ -219,6 +219,21 @@ test-mode-bank-prn-chip: check-tools $(BUILD_PATH)
 	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
 	@echo "MEM BANK PRN SINGLE-BIT TEST MODE build complete!"
 
+# Build that fails the Color RAM test. The chip diagram shows the eight main
+# RAM chips; the colour RAM is a separate part, so nothing may be marked there.
+test-mode-color: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in COLOR RAM TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL a test!"
+	@echo "Expected: COLOR RAM shows BAD, chip diagram stays EMPTY"
+	@echo ""
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_COLOR_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo "COLOR RAM TEST MODE build complete!"
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
@@ -286,6 +301,7 @@ help:
 	@echo "  test-mode-prn-chip - Build with simulated Low RAM single-bit PRN fault (BAD, U21 chip)"
 	@echo "  test-mode-bank-bus - Build with simulated Memory Bank bus fault (continuous flash)"
 	@echo "  test-mode-bank-prn-chip - Build with simulated Memory Bank single-bit PRN fault (6 flashes, U22 chip)"
+	@echo "  test-mode-color - Build with simulated Color RAM failure (BAD, no chip marked)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
 	@echo "  release      - Create release package (v$(VERSION))"

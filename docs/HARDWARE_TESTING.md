@@ -317,7 +317,7 @@ first bad byte, so the rest of $0800-$0FFF is not checked on that pass.
 
 - **C64 Service Manual**: Complete schematics showing RAM chip locations
 - **Dead Test Source Code**: `src/low_ram_test.asm` shows exactly what's tested
-- **Software Test Mode**: Seven builds exercise the failure paths without
+- **Software Test Mode**: Eight builds exercise the failure paths without
   hardware risk. `make test-mode` (Low RAM `$AA` phase) and
   `make test-mode-walking` (Low RAM walking bits) both simulate a bit 0 / U21
   failure, and `make test-mode-prn` simulates a Low RAM bus fault; all three are
@@ -326,8 +326,9 @@ first bad byte, so the rest of $0800-$0FFF is not checked on that pass.
   before the display exists, so the border flash is the whole diagnosis and it is
   checked by reading a probe byte back. `make test-mode-prn-chip` and
   `make test-mode-bank-prn-chip` inject a single-bit PRN fault, which must be
-  reported as one chip rather than as a bus fault. `scripts/test-mode-validation.sh`
-  builds and runs all seven under VICE and asserts the diagnosis each one reports.
+  reported as one chip rather than as a bus fault. `make test-mode-color` fails the
+  Color RAM test, which must leave the chip diagram empty. `scripts/test-mode-validation.sh`
+  builds and runs all eight under VICE and asserts the diagnosis each one reports.
 - **Community Forums**: Share your testing results and ask questions
 
 ## Questions?

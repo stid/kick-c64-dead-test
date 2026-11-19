@@ -203,6 +203,7 @@ This differentiation helps diagnose whether the problem is a failed RAM chip or 
 - Only lower 4 bits are valid (masked with `and #$0f`)
 - Uses 12-byte pattern suitable for 4-bit values
 - Tests all 16 possible colors
+- On failure shows "BAD" and halts without marking the chip diagram: the diagram shows the main RAM chips, and the color RAM is a separate part
 
 ### 7. General RAM Test ($0800-$0FFF)
 
@@ -335,7 +336,9 @@ The diagnostic maintains CIA timers for:
 - NOT a chip failure
 - Infinite loop (system halted)
 
-**Halting Test Failures** (Zero Page, Stack Page, Low RAM, Screen RAM, Color RAM):
+**Color RAM Failure**: displays "BAD" and halts with the chip diagram left empty.
+
+**Halting Test Failures** (Zero Page, Stack Page, Low RAM, Screen RAM):
 
 - Display "BIT", "BUS", or "BAD" at test location (depending on failure type):
   - **"BIT"** - Stuck bit failure (AA/55 patterns) - shows chip diagram
