@@ -33,11 +33,12 @@ assignees: ''
 ### Memory Tests
 ```
 Memory Bank:  [PASS/FAIL - specify chips if failed]
-Zero Page:    [OK/BAD]
-Stack:        [OK/BAD]
+Zero Page:    [OK/BIT/BUS/BAD]
+Stack:        [OK/BIT/BUS/BAD]
+Low RAM:      [OK/BIT/BUS/BAD]
 Screen RAM:   [OK/BAD]
 Color RAM:    [OK/BAD]
-RAM Test:     [OK/BAD]
+RAM Test:     [OK/BIT/BAD]
 ```
 
 ### Other Tests

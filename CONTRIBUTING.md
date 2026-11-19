@@ -84,11 +84,12 @@ jmp nextTest    // Cannot use JSR until stack verified
 make clean
 make
 make run        # Test in VICE
+./scripts/test-mode-validation.sh   # Fault-injection builds: asserts each diagnosis
 ```
 
 Verify:
 - All tests execute in sequence
-- Visual indicators work (OK/BAD displays)
+- Visual indicators work (OK, BIT, BUS and BAD displays)
 - Border color cycles correctly
 - Sound tests produce audio
 - No crashes or hangs
