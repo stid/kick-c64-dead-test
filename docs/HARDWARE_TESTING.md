@@ -191,8 +191,8 @@ Plus **red "BAD" indicators** in the chip diagram box showing the specific chip 
 
 **Error Message Meanings:**
 - **BIT** = Stuck bit failure (AA/55 patterns) - shows chip diagram
-- **BUS** = Address bus failure (PRN patterns) - no chip diagram, indicates crossed/shorted address lines
-- **BAD** = Specific chip failure (walking bits) - shows chip diagram
+- **BUS** = Address bus failure (PRN pattern wrong in several bits) - no chip diagram, indicates crossed/shorted address lines
+- **BAD** = Specific chip failure (walking bits, or PRN pattern wrong in a single bit) - shows chip diagram
 
 Note: RAM TEST (the byte-by-byte test) never reports BUS - its single-address
 write/readback cannot observe bus faults, so a PRN mismatch there is reported
@@ -216,8 +216,8 @@ first bad byte, so the rest of $0800-$0FFF is not checked on that pass.
    - If this fails → One or more odd bits (1,3,5,7) are bad
    - Shows chip diagram with failed chip(s)
 
-3. **PRN Sequence (247 bytes)** → **"BUS"** error if fails
-   - Tests address bus integrity
+3. **PRN Sequence (247 bytes)** → **"BUS"** if several bits are wrong, **"BAD"** with the chip marked if only one is
+   - Tests address bus integrity, and catches a single chip with an internal addressing fault
    - Detects page confusion and mirrored addresses
    - If this fails → Address lines might be crossed/shorted
    - NO chip diagram shown (not a chip failure)
@@ -236,7 +236,8 @@ first bad byte, so the rest of $0800-$0FFF is not checked on that pass.
 | Multiple bits in pattern | Multiple RAM chips | BIT or BAD | Multiple U-chips marked red |
 | All bits wrong | Chip completely unseated | BIT or BAD | All U9-U24 marked, or black screen |
 | Intermittent failures | Poor socket contact | BIT or BAD | Test passes sometimes, fails others |
-| PRN test fails, AA/55 pass | Address bus problem | BUS | No chip diagram, system halts |
+| PRN test fails in several bits, AA/55 pass | Address bus problem | BUS | No chip diagram, system halts |
+| PRN test fails in one bit, AA/55 pass | One chip with an addressing fault | BAD | That U-chip marked red |
 
 ## Troubleshooting
 
@@ -316,15 +317,17 @@ first bad byte, so the rest of $0800-$0FFF is not checked on that pass.
 
 - **C64 Service Manual**: Complete schematics showing RAM chip locations
 - **Dead Test Source Code**: `src/low_ram_test.asm` shows exactly what's tested
-- **Software Test Mode**: Five builds exercise the failure paths without
+- **Software Test Mode**: Seven builds exercise the failure paths without
   hardware risk. `make test-mode` (Low RAM `$AA` phase) and
   `make test-mode-walking` (Low RAM walking bits) both simulate a bit 0 / U21
   failure, and `make test-mode-prn` simulates a Low RAM bus fault; all three are
   checked on screen. `make test-mode-bank` simulates a two-bit failure in the
-  Memory Bank test and `make test-mode-bank-bus` a bus fault there. Those two fail
+  Memory Bank test and `make test-mode-bank-bus` a bus fault there. Those fail
   before the display exists, so the border flash is the whole diagnosis and it is
-  checked by reading a probe byte back. `scripts/test-mode-validation.sh` builds
-  and runs all five under VICE and asserts the diagnosis each one reports.
+  checked by reading a probe byte back. `make test-mode-prn-chip` and
+  `make test-mode-bank-prn-chip` inject a single-bit PRN fault, which must be
+  reported as one chip rather than as a bus fault. `scripts/test-mode-validation.sh`
+  builds and runs all seven under VICE and asserts the diagnosis each one reports.
 - **Community Forums**: Share your testing results and ask questions
 
 ## Questions?

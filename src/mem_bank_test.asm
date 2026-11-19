@@ -10,6 +10,10 @@
 //   TEST_MODE_BANK_ENABLED - injects a two-bit fault (bits 0 and 2) into the
 //                            $AA phase, exercising memFailureFlash's bank
 //                            decode and the border flash counter.
+//   TEST_MODE_BANK_BUS_ENABLED - two-bit fault in the PRN phase: continuous
+//                            flash, no count.
+//   TEST_MODE_BANK_PRN_CHIP_ENABLED - one-bit fault (bit 2) in the PRN phase:
+//                            counted flash for that chip (bank 6 = U22).
 //
 // Why this needs its own flag rather than reusing the Low RAM ones: this test
 // runs first, so a fault here halts the diagnostic before any other test is
@@ -292,61 +296,71 @@ memBankTest: {
                 ldx #$00
                 ldy #$00
         verifyPRNLoop:
+                // EOR rather than CMP: zero means match, and on a mismatch A
+                // already holds the differing bits. Each page has its own
+                // expected byte, so the handler could not recompute them.
                 lda $0100,y
 #if TEST_MODE_BANK_BUS_ENABLED
-                // TEST MODE: corrupt the readback so the PRN phase fails,
-                // routing to memBusFailureFlash instead of the counted flash.
-                // Which bits differ is irrelevant here: a PRN mismatch across
-                // pages means page confusion, not a single bad chip, so this
-                // path deliberately flashes continuously with no count.
-                eor #$01
+                // TEST MODE: corrupt TWO bits of the readback so the PRN phase
+                // fails as a bus fault, routing to memBusFailureFlash instead
+                // of the counted flash. It must be multi-bit: a single
+                // differing bit is reported as one bad chip instead (see
+                // TEST_MODE_BANK_PRN_CHIP_ENABLED).
+                eor #$05
 #endif
-                cmp PrnTestPattern,x
+#if TEST_MODE_BANK_PRN_CHIP_ENABLED
+                // TEST MODE: corrupt ONE bit (bit 2, U22) of the readback.
+                // A single-bit PRN mismatch is one chip, so the expected
+                // signal is the counted flash: bank 6. Bit 2 rather than
+                // bit 0 so the count differs from TEST_MODE_BANK_ENABLED's 8.
+                eor #$04
+#endif
+                eor PrnTestPattern,x
                 bne !fail+
                 lda $0200,y
-                cmp PrnTestPattern+1,x
+                eor PrnTestPattern+1,x
                 bne !fail+
                 lda $0300,y
-                cmp PrnTestPattern+2,x
+                eor PrnTestPattern+2,x
                 bne !fail+
                 lda $0400,y
-                cmp PrnTestPattern+3,x
+                eor PrnTestPattern+3,x
                 bne !fail+
                 jmp !continue+
         !fail:  jmp memTestFailed_PRN
         !continue:
                 lda $0500,y
-                cmp PrnTestPattern+4,x
+                eor PrnTestPattern+4,x
                 bne !fail-
                 lda $0600,y
-                cmp PrnTestPattern+5,x
+                eor PrnTestPattern+5,x
                 bne !fail-
                 lda $0700,y
-                cmp PrnTestPattern+6,x
+                eor PrnTestPattern+6,x
                 bne !fail-
                 lda $0800,y
-                cmp PrnTestPattern+7,x
+                eor PrnTestPattern+7,x
                 bne !fail-
                 lda $0900,y
-                cmp PrnTestPattern+8,x
+                eor PrnTestPattern+8,x
                 bne !fail-
                 lda $0a00,y
-                cmp PrnTestPattern+9,x
+                eor PrnTestPattern+9,x
                 bne !fail-
                 lda $0b00,y
-                cmp PrnTestPattern+10,x
+                eor PrnTestPattern+10,x
                 bne !fail-
                 lda $0c00,y
-                cmp PrnTestPattern+11,x
+                eor PrnTestPattern+11,x
                 bne !fail-
                 lda $0d00,y
-                cmp PrnTestPattern+12,x
+                eor PrnTestPattern+12,x
                 bne !fail-
                 lda $0e00,y
-                cmp PrnTestPattern+13,x
+                eor PrnTestPattern+13,x
                 bne !fail-
                 lda $0f00,y
-                cmp PrnTestPattern+14,x
+                eor PrnTestPattern+14,x
                 bne !fail-
 
                 // Increment PRN index with wrap at 247
@@ -481,10 +495,26 @@ memBankTest: {
                 jmp memFailureFlash
 
         memTestFailed_PRN:
-                // Failed during PRN pattern test - ADDRESS BUS FAILURE
-                // This indicates crossed address lines or page mirroring
-                // NOT a chip failure - do continuous fast flash instead
+                // Failed during PRN pattern test. A = differing bits.
+                // Count them, using registers only (no stack, no RAM).
+                //   One bit differs -> one chip. A 4164 with an internal
+                //                      addressing fault passes the uniform
+                //                      AA/55 fills and fails only here, in its
+                //                      own data bit: counted flash for it.
+                //   Several bits    -> crossed address lines or page mirroring,
+                //                      NOT a chip failure: continuous flash.
+                tax                     // Keep the differing bits
+                ldy #$00                // Y = number of differing bits
+        !loop:  lsr
+                bcc !+
+                iny
+        !:      cmp #$00
+                bne !loop-
+                cpy #$01
+                beq !+
                 jmp memBusFailureFlash
+        !:      txa                     // Single bit: decode it to a bank
+                jmp memFailureFlash
 
         memTestFailed_Walking:
                 // Failed during walking bits test
@@ -524,7 +554,7 @@ memBankTest: {
                 // Number of flashes = failed chip number (1-8)
                 // This provides diagnostic info even without working display RAM
 
-#if TEST_MODE_BANK_ENABLED
+#if TEST_MODE_BANK_ENABLED || TEST_MODE_BANK_PRN_CHIP_ENABLED
                 // TEST MODE PROBE: publish the computed flash count to memory
                 // so it can be asserted automatically.
                 //

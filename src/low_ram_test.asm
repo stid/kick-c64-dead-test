@@ -14,6 +14,10 @@
 //   TEST_MODE_ENABLED          - fault in the $AA phase, exercises testFailed_AA
 //   TEST_MODE_WALKING_ENABLED  - fault in the walking bits phase, exercises
 //                                testFailed_Walking
+//   TEST_MODE_PRN_ENABLED      - two-bit fault in the PRN phase, exercises the
+//                                "BUS" report (no chip marked)
+//   TEST_MODE_PRN_CHIP_ENABLED - one-bit fault in the PRN phase, exercises the
+//                                single-chip report ("BAD", chip marked)
 //
 // Two flags are needed because phases run in order: an $AA fault halts the
 // test before the walking bits phase is ever reached, so the walking handler
@@ -57,9 +61,10 @@
 //          5. Any mismatch indicates RAM or address bus failure
 //
 // On Success: Displays "OK" on screen
-// On Failure: Displays "BIT" (AA/55), "BUS" (PRN) or "BAD" (walking bits) and
-//             halts. BIT and BAD mark the failed chip(s) in the diagram; BUS
-//             marks none. The failing address is not reported.
+// On Failure: Displays "BIT" (AA/55), "BUS" (PRN, several bits wrong) or "BAD"
+//             (walking bits, or PRN with a single bit wrong) and halts. BIT
+//             and BAD mark the failed chip(s) in the diagram; BUS marks none.
+//             The failing address is not reported.
 //=============================================================================
 lowRamTest: {
                 // Display "LOW RAM" label on screen
@@ -203,11 +208,18 @@ lowRamTest: {
                 ldy #$00
                 lda (ZP.tmpDestAddressLow),y    // Read actual value from memory
 #if TEST_MODE_PRN_ENABLED
-                // TEST MODE: corrupt the readback so the PRN phase fails.
-                // This exercises testFailed_PRN, which reports "BUS" and halts
-                // WITHOUT marking any chip - a bus fault is not a chip fault.
-                // The value flipped does not matter: unlike the other handlers
-                // this one never decodes which bits differ.
+                // TEST MODE: corrupt TWO bits of the readback so the PRN phase
+                // fails as a bus fault. testFailed_PRN reports "BUS" and halts
+                // WITHOUT marking any chip when more than one bit differs.
+                // It must be multi-bit: a single differing bit is reported
+                // as one bad chip instead (see TEST_MODE_PRN_CHIP_ENABLED).
+                eor #$05
+#endif
+#if TEST_MODE_PRN_CHIP_ENABLED
+                // TEST MODE: corrupt ONE bit (bit 0, U21) of the readback.
+                // AA/55 passed and the PRN phase fails in a single bit: that
+                // is one chip misbehaving, not the shared address bus, so the
+                // expected report is "BAD" with U21 marked.
                 eor #$01
 #endif
                 cmp PrnTestPattern,x            // Compare with expected pattern
@@ -322,7 +334,28 @@ lowRamTest: {
                 jmp UFailed                     // Show which bits failed (never returns)
 
         testFailed_PRN:
-                // PRN sequence test failed - address bus issue
+                // PRN sequence test failed
+                // A = actual value, X = PRN index. Isolate the differing bits
+                // and count them, using registers only (no stack, no RAM).
+                //   One bit differs  -> one chip. A 4164 with an internal
+                //                       addressing fault passes the uniform
+                //                       AA/55 fills and fails only here, in
+                //                       its own data bit. Report it like any
+                //                       identified chip.
+                //   Several bits     -> every chip saw the wrong cell at once,
+                //                       which points at the shared address bus.
+                eor PrnTestPattern,x            // A = differing bits
+                tax                             // Keep them for UFailed
+                ldy #$00                        // Y = number of differing bits
+        !loop:  lsr
+                bcc !+
+                iny
+        !:      cmp #$00
+                bne !loop-
+                cpy #$01
+                bne !+
+                jmp chipIdentified              // Single bit: mark that chip
+        !:
                 // Display "BUS" - address bus failure
                 lda #$02                        // Screen code for "B"
                 sta VIDEO_RAM+$ad
@@ -337,6 +370,7 @@ lowRamTest: {
                 // Walking bits test failed - specific chip failure
                 eor MemTestPattern,x            // XOR with expected to find bad bits
                 tax                             // Move to X for UFailed
+        chipIdentified:                         // Entry for a single-bit PRN failure (X = bad bits)
                 // Display "BAD" - specific chip failure
                 lda #$02                        // Screen code for "B"
                 sta VIDEO_RAM+$ad
