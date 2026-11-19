@@ -71,7 +71,7 @@ mainLoop: {
                 // row back and compares it against the VERSION file so CI
                 // catches it.
                 //
-                // "c-64 dead test rev stid 2.0.0-beta.1" = 36 chars, drawn at
+                // "c-64 dead test rev stid 2.0.0-beta.2" = 36 chars, drawn at
                 // column 2, so columns 2-37 with 2 free at each end.
                 ldx #$23
         !:      lda strAbout,x

@@ -24,7 +24,7 @@ The on-screen diagram draws the chips in two columns, U9 to U12 on the left and 
 If the initial memory bank test fails there is no display, so the border flash is the whole diagnosis:
 
 - **N flashes, pause, repeat**: the chip in the table above failed. With several bad bits only the lowest one is reported, so after replacing that chip the count may change to the next one.
-- **Continuous flashing, no pause**: address bus fault. No single chip is identified.
+- **Continuous flashing, no pause**: address bus fault (the PRN pattern came back wrong in several bits at once). No single chip is identified.
 
 ## Test sequence
 

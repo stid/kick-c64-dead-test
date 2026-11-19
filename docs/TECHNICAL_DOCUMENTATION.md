@@ -87,8 +87,9 @@ The test differentiates between chip failures and bus failures:
   - Bit 7 → U12 (Bank 1) - Flash 1 time
 - Screen flashes white/black N times for chip N, then repeats
 
-**Bus Failures** (PRN pattern):
-- Indicates address bus fault (crossed lines, mirroring, page confusion)
+**PRN failures** are split by how many bits differ:
+- One bit: a single chip (a 4164 with an internal addressing fault passes the uniform AA/55 fills and fails only here). Reported as a chip failure, with the counted flash for that chip
+- Several bits: address bus fault (crossed lines, mirroring, page confusion), reported as a bus failure:
 - Continuous FAST flashing (no count pattern)
 - Not a chip failure - no specific chip can be identified
 
@@ -168,14 +169,16 @@ When Low RAM test fails, different error messages indicate the failure type:
   - Shows chip diagram with failed chip(s)
   - System halts (infinite loop)
 
-- **"BUS"** - Address bus failure detected by PRN pattern
+- **"BUS"** - Address bus failure: PRN pattern wrong in several bits at once
   - Indicates crossed/shorted address lines or page confusion
   - No chip diagram shown (not a chip failure)
   - System halts (infinite loop)
 
-- **"BAD"** - Specific chip failure detected by walking bits
+- **"BAD"** - Specific chip failure detected by walking bits, or by a PRN mismatch in a single bit
   - Shows chip diagram with failed chip(s)
   - System halts (infinite loop)
+
+The same split applies to the Zero Page and Stack Page tests. The failing bits are counted with registers only, so it works before the stack is verified.
 
 This differentiation helps diagnose whether the problem is a failed RAM chip or an address bus fault.
 
@@ -325,7 +328,7 @@ The diagnostic maintains CIA timers for:
 - Pattern repeats continuously: flash N times → pause → repeat
 - Infinite loop (system halted)
 
-*Bus Failures (PRN pattern)*:
+*Bus Failures (PRN pattern, several bits wrong)*:
 - Continuous fast flashing (no count pattern)
 - No pause between cycles
 - Indicates address bus fault (crossed lines, mirroring)
@@ -336,8 +339,8 @@ The diagnostic maintains CIA timers for:
 
 - Display "BIT", "BUS", or "BAD" at test location (depending on failure type):
   - **"BIT"** - Stuck bit failure (AA/55 patterns) - shows chip diagram
-  - **"BUS"** - Address bus failure (PRN pattern) - no chip diagram
-  - **"BAD"** - Specific chip failure (walking bits) - shows chip diagram
+  - **"BUS"** - Address bus failure (PRN pattern, several bits wrong) - no chip diagram
+  - **"BAD"** - Specific chip failure (walking bits, or PRN with one bit wrong) - shows chip diagram
 - Show failed chip ID in diagram (for BIT and BAD, not BUS)
 - Color failed chips red
 - Enter infinite loop (deadLoop)

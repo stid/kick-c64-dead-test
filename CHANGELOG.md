@@ -7,6 +7,28 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
+## [2.0.0-beta.2] - not yet tagged
+
+### Changed
+- **A PRN mismatch in a single bit now identifies that chip.** beta.1 reported every PRN
+  failure as "BUS" with no chip marked (or continuous border flashing during the black
+  screen). A 4164 with an internal addressing fault passes the uniform $AA/$55 fills and
+  fails the PRN phase in its own data bit only, so beta.1 would have said "not a chip"
+  about a single bad chip. Now one wrong bit is reported as "BAD" with the chip marked, or
+  as the counted flash for that chip; several wrong bits at once are still "BUS". Applies
+  to the Memory Bank, Zero Page, Stack Page and Low RAM tests. Reasoned from how the chips
+  fail, and covered by injected faults in the emulator; not yet seen on real hardware.
+
+### Fixed
+- `examples/README.md` had the border flash table inverted (1 flash is U12, not U21).
+- Changelog dates for 1.1.0, 1.2.0 and 2.0.0-beta.1.
+- Docs now say the chip names apply to the eight-4164 long boards only.
+
+### Testing
+- Two more fault-injection builds, `make test-mode-prn-chip` and
+  `make test-mode-bank-prn-chip`, cover the single-bit PRN path. The two existing bus
+  builds now inject a two-bit fault so they still exercise "BUS".
+
 ## [2.0.0-beta.1] - 2026-07-27
 
 ### Why version 2.0?

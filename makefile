@@ -23,7 +23,7 @@ LOG_FILE = $(BUILD_PATH)/buildlog.txt
 KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
 
 # Version
-VERSION ?= 2.0.0-beta.1
+VERSION ?= 2.0.0-beta.2
 
 # VICE is a GTK application and aborts at startup with "No GSettings schemas are
 # installed on the system" if it cannot find them. Homebrew on Apple Silicon
@@ -39,7 +39,7 @@ ifeq ($(shell uname),Darwin)
 endif
 
 # Phony targets
-.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking test-mode-bank test-mode-prn test-mode-bank-bus
+.PHONY: all build clean run debug help check-tools test release check version test-mode test-mode-walking test-mode-bank test-mode-prn test-mode-prn-chip test-mode-bank-bus test-mode-bank-prn-chip
 
 # Default target
 all: build
@@ -188,6 +188,37 @@ test-mode-bank-bus: check-tools $(BUILD_PATH)
 	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
 	@echo "MEM BANK BUS TEST MODE build complete!"
 
+# Build that fails the Low RAM PRN phase in a SINGLE bit. AA/55 pass and one
+# bit of the PRN readback is wrong: that is one chip, not the address bus, so
+# the report is BAD with the chip marked rather than BUS.
+test-mode-prn-chip: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in LOW RAM PRN SINGLE-BIT TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL a test!"
+	@echo "Expected: LOW RAM shows BAD with U21 (bit 0) marked in the chip diagram"
+	@echo ""
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_PRN_CHIP_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo "LOW RAM PRN SINGLE-BIT TEST MODE build complete!"
+
+# Build that fails the Memory Bank PRN phase in a SINGLE bit (bit 2). Expected
+# signal is the counted flash for that chip (6 = U22), not the continuous one.
+test-mode-bank-prn-chip: check-tools $(BUILD_PATH)
+	@echo "Building $(PROJECT_NAME) in MEM BANK PRN SINGLE-BIT TEST MODE..."
+	@echo "WARNING: This build will intentionally FAIL a test!"
+	@echo "Expected: black screen, border flashes 6 times (bank 6 = U22), repeating"
+	@echo ""
+	@$(JAVA) -jar $(KICKASS_BIN) $(KICKASS_OPTS) -define TEST_MODE_BANK_PRN_CHIP_ENABLED $(MAIN_SOURCE) || { \
+		echo "Assembly failed!"; \
+		exit 1; \
+	}
+	@$(CARTCONV) -t ulti -n "$(PROJECT_NAME)" -i $(PRG_FILE) -o $(CRT_FILE) || { echo "CRT conversion failed!"; exit 1; }
+	@$(CARTCONV) -i $(CRT_FILE) -o $(BIN_FILE) || { echo "BIN conversion failed!"; exit 1; }
+	@echo "MEM BANK PRN SINGLE-BIT TEST MODE build complete!"
+
 # Clean build artifacts
 clean:
 	@echo "Cleaning build artifacts..."
@@ -252,7 +283,9 @@ help:
 	@echo "  test-mode-walking - Build with simulated RAM failure (Low RAM walking bits phase, U21 chip)"
 	@echo "  test-mode-bank - Build with simulated RAM failure (Memory Bank \$$AA phase, two-bit, U21 chip)"
 	@echo "  test-mode-prn - Build with simulated Low RAM bus fault (BUS, no chip marked)"
+	@echo "  test-mode-prn-chip - Build with simulated Low RAM single-bit PRN fault (BAD, U21 chip)"
 	@echo "  test-mode-bank-bus - Build with simulated Memory Bank bus fault (continuous flash)"
+	@echo "  test-mode-bank-prn-chip - Build with simulated Memory Bank single-bit PRN fault (6 flashes, U22 chip)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
 	@echo "  release      - Create release package (v$(VERSION))"

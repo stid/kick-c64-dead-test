@@ -12,7 +12,7 @@ A clear and concise description of the bug.
 ## Hardware/Software Configuration
 - **C64 Model**: [e.g., C64, C64C, C128 in C64 mode]
 - **RAM Configuration**: [e.g., stock, expanded]
-- **Diagnostic Version**: [e.g., v2.0.0-beta.1]
+- **Diagnostic Version**: [e.g., v2.0.0-beta.2]
 - **Testing Method**: [Real hardware / VICE emulator]
 - **VICE Version** (if applicable): [e.g., 3.7]
 

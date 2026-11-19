@@ -25,7 +25,9 @@
 // Test Patterns:
 //   1. $AA (10101010) - Detects stuck-low bits on odd positions
 //   2. $55 (01010101) - Detects stuck-high bits on even positions
-//   3. 247-byte PRN sequence - Detects address bus problems
+//   3. 247-byte PRN sequence - Detects address bus problems (several bits
+//      wrong: "BUS") and single chips with addressing faults (one bit
+//      wrong: "BAD" with the chip marked)
 //   4. Walking ones/zeros - Identifies specific failing chips
 //
 // CRITICAL CONSTRAINTS:
@@ -195,6 +197,27 @@ zeroPageTest: {
                 jmp UFailed                     // Show which bits failed
 
         zeroPageFailed_PRN:
+                // A = actual value, X = PRN index. Isolate the differing bits
+                // and count them, using registers only (no stack, no RAM).
+                //   One bit differs  -> one chip. A 4164 with an internal
+                //                       addressing fault passes the uniform
+                //                       AA/55 fills and fails only here, in
+                //                       its own data bit. Report it like any
+                //                       identified chip.
+                //   Several bits     -> every chip saw the wrong cell at once,
+                //                       which points at the shared address bus.
+                eor PrnTestPattern,x            // A = differing bits
+                tax                             // Keep them for UFailed
+                ldy #$00                        // Y = number of differing bits
+        !loop:  lsr
+                bcc !+
+                iny
+        !:      cmp #$00
+                bne !loop-
+                cpy #$01
+                bne !+
+                jmp chipIdentified              // Single bit: mark that chip
+        !:
                 // Display "BUS" - address bus failure
                 lda #$02                        // 'B' in screen code
                 sta VIDEO_RAM+$5d
@@ -208,6 +231,7 @@ zeroPageTest: {
         zeroPageFailed_Walking:
                 eor MemTestPattern,x
                 tax
+        chipIdentified:                 // Entry for a single-bit PRN failure (X = bad bits)
                 // Display "BAD" - specific chip failure
                 lda #$02                        // 'B' in screen code
                 sta VIDEO_RAM+$5d
