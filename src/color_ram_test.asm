@@ -34,7 +34,8 @@
 // - $01,$02,$04,$08: Walking ones - isolates individual bit failures
 // - $0E,$0D,$0B,$07: Walking zeros - detects bit-to-bit shorts
 //
-// On Failure: Display "BAD" and jump to failure handler
+// On Failure: Display "BAD" and halt. No chip is marked in the diagram, which
+//             shows only the main RAM chips.
 // On Success: Display "OK" and continue to next test
 //=============================================================================
 colorRamTest: {
@@ -73,6 +74,13 @@ colorRamTest: {
                 // Upper 4 bits are not connected in the 2114 chip
                 lda (ZP.tmpSourceAddressLow),y
                 and #$0f                        // Mask off garbage in upper nibble
+#if TEST_MODE_COLOR_ENABLED
+                // TEST MODE: flip bit 0 of the readback so the test fails.
+                // Expected: "COLOR RAM BAD" and an EMPTY chip diagram - the
+                // diagram shows the main RAM chips, and the colour RAM is a
+                // different part.
+                eor #$01
+#endif
                 
                 // Verify the 4-bit value matches what we wrote
                 cmp colorRamPattern,x
@@ -103,11 +111,6 @@ colorRamTest: {
                 rts
 
         colorRamTestFailed:
-                // XOR failed value with expected pattern to identify bad bits
-                // Result shows which of the 4 bits are faulty
-                eor colorRamPattern,x
-                tax                             // Save bit failure pattern
-
                 // Display "BAD" error message
                 lda #$02                        // "B"
                 sta VIDEO_RAM+$fd
@@ -116,7 +119,10 @@ colorRamTest: {
                 lda #$04                        // "D"
                 sta VIDEO_RAM+$ff
                 
-                // Jump to universal failure handler
-                // X register contains the XOR result showing failed bits
-                jmp UFailed
+                // Halt WITHOUT marking the chip diagram. The diagram shows the
+                // eight main RAM chips (U9-U12, U21-U24); the colour RAM is a
+                // separate part, so its failing bits must not be drawn there.
+                // (Up to beta.1 this jumped to UFailed and marked U21/U9/U22/U10
+                // for a fault those chips had nothing to do with.)
+                jmp UFailed.deadLoop
 }
