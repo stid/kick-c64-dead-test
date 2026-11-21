@@ -4,15 +4,22 @@
 # Validates that TEST_MODE builds correctly simulate a RAM failure and that the
 # diagnostic identifies the failing chip.
 #
-# Five builds are validated - one per distinct diagnostic signal the cartridge
+# Seven builds are validated - one per distinct diagnostic signal the cartridge
 # can produce. Each needs its own build, because tests run in order and the
 # first failure halts the diagnostic:
 #
 #   test-mode           -> Low RAM $AA        -> "LOW RAM BIT", U21 marked
 #   test-mode-walking   -> Low RAM walking    -> "LOW RAM BAD", U21 marked
-#   test-mode-prn       -> Low RAM PRN        -> "LOW RAM BUS", NO chip marked
+#   test-mode-prn       -> Low RAM PRN, 2 bits -> "LOW RAM BUS", NO chip marked
+#   test-mode-prn-chip  -> Low RAM PRN, 1 bit  -> "LOW RAM BAD", U21 marked
 #   test-mode-bank      -> Mem Bank $AA       -> border flashes 8 times
-#   test-mode-bank-bus  -> Mem Bank PRN       -> border flashes continuously
+#   test-mode-bank-bus  -> Mem Bank PRN, 2 bits -> border flashes continuously
+#   test-mode-bank-prn-chip -> Mem Bank PRN, 1 bit -> border flashes 6 times
+#
+# A PRN mismatch is split by how many bits differ. One bit is one chip (a 4164
+# with an internal addressing fault passes the uniform AA/55 fills and fails
+# only here), so it is reported like any other chip failure. Several bits at
+# once point at the shared address bus, which marks no chip.
 #
 # Without the walking build that handler was never executed, which is how a bug
 # that made it report no failing chip at all went unnoticed.
@@ -383,8 +390,10 @@ run_mode() {
 run_mode test-mode         "\$AA phase failure"   "$SHOT_DIR/test-mode-aa.png"      BIT
 run_mode test-mode-walking "walking bits failure" "$SHOT_DIR/test-mode-walking.png" BAD
 run_mode test-mode-prn     "Low RAM bus fault"    "$SHOT_DIR/test-mode-prn.png"     BUS NONE
+run_mode test-mode-prn-chip "Low RAM single-bit PRN fault" "$SHOT_DIR/test-mode-prn-chip.png" BAD
 run_bank_mode test-mode-bank     "memory bank two-bit failure" 8   "bank 8 = U21"               flashLoop
 run_bank_mode test-mode-bank-bus "memory bank bus fault"       255 "continuous flash, no count" busFlashLoop
+run_bank_mode test-mode-bank-prn-chip "memory bank single-bit PRN fault" 6 "bank 6 = U22" flashLoop
 
 echo "======================="
 echo
@@ -394,7 +403,7 @@ if [ "$SCREENSHOTS_CAPTURED" -eq "$MODES_RUN" ]; then
     echo
     echo "Summary:"
     echo "  ✓ All $MODES_RUN TEST_MODE builds compiled and ran in VICE"
-    echo "  ✓ Screenshots captured for the three Low RAM modes"
+    echo "  ✓ Screenshots captured for the Low RAM modes"
     echo "  ✓ Diagnosis verified for $SCREENS_VERIFIED of $MODES_RUN modes:"
     echo "    Low RAM  - status word (BIT/BAD/BUS) and chip marks from screen RAM"
     echo "    Mem Bank - border flash signal (count vs continuous) from the probe"
@@ -416,8 +425,9 @@ echo
 echo "What was checked automatically, from screen RAM:"
 echo "    - $SHOT_DIR/test-mode-aa.png:      \"LOW RAM\" followed by \"BIT\""
 echo "    - $SHOT_DIR/test-mode-walking.png: \"LOW RAM\" followed by \"BAD\""
- echo "    - $SHOT_DIR/test-mode-prn.png:     \"LOW RAM\" followed by \"BUS\", no chip marked"
-echo "    - the two Memory Bank probes: flash count 8, then the 255 sentinel"
+echo "    - $SHOT_DIR/test-mode-prn.png:     \"LOW RAM\" followed by \"BUS\", no chip marked"
+echo "    - $SHOT_DIR/test-mode-prn-chip.png: \"LOW RAM\" followed by \"BAD\", U21 marked"
+echo "    - the three Memory Bank probes: flash count 8, the 255 sentinel, flash count 6"
 echo "  The three words are three different diagnoses: BIT is a stuck bit, BAD"
 echo "  a failed chip, BUS an address bus fault - which marks NO chip, because"
 echo "  blaming one would send a technician to replace a good part."

@@ -1,12 +1,12 @@
 # Commodore 64 Dead Test - Kick Assembler Port
 
 [![Build Status](https://github.com/stid/kick-c64-dead-test/workflows/Build%20Dead%20Test/badge.svg)](https://github.com/stid/kick-c64-dead-test/actions)
-[![Version](https://img.shields.io/badge/version-2.0.0--beta.1-blue)](https://github.com/stid/kick-c64-dead-test/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0--beta.2-blue)](https://github.com/stid/kick-c64-dead-test/releases)
 [![Platform](https://img.shields.io/badge/platform-C64%20%7C%20C128-orange)]()
 
 > **Quick Start**: Download the [latest release](https://github.com/stid/kick-c64-dead-test/releases) and burn `dead-test.bin` to an EPROM, or run `dead-test.crt` in VICE.
 
-> **2.0.0-beta.1 is a pre-release.** The last published release is
+> **2.0.0-beta.2 is a pre-release.** The last published release is
 > [v1.2.0](https://github.com/stid/kick-c64-dead-test/releases) (2020). Against that, 2.0
 > rewrites how every RAM test decides and reports a failure, and changes three existing
 > diagnoses outright. Each new signal is
@@ -140,7 +140,13 @@ These have no v1.2.0 equivalent, so there is no old answer to compare against �
 are signals you have not seen from this cartridge before:
 
 - **"BIT" / "BUS" / "BAD"** as three distinct verdicts. v1.2.0 had one failure display.
-  BIT is a stuck bit, BAD a chip identified by walking bits, BUS an address bus fault.
+  BIT is a stuck bit, BAD an identified chip, BUS an address bus fault.
+- **The PRN phase gives two different answers, by how many bits are wrong.** One wrong bit
+  is one chip: a 4164 with an internal addressing fault passes the uniform $AA/$55 fills and
+  fails only here, so it is reported as "BAD" with that chip marked (or a counted flash
+  during the black screen). Several wrong bits at once mean every chip saw the wrong cell,
+  which points at the shared address bus: that is "BUS". (New in beta.2: beta.1 reported
+  every PRN failure as BUS.)
 - **"BUS" leaves the chip diagram deliberately blank.** A bus fault is not a chip fault;
   marking a chip would send you to replace a good part. An empty diagram under BUS is the
   correct result, not a failure to identify.
@@ -243,8 +249,8 @@ When a RAM test fails, the diagnostic displays specific error messages to help i
 | Message | Meaning | Cause | Chip Diagram | Action |
 |---------|---------|-------|--------------|--------|
 | **BIT** | Stuck bit failure | One or more bits permanently stuck high or low (detected by $AA/$55 patterns) | ✅ Shows failed chip(s) | Replace identified RAM chip(s) |
-| **BUS** | Address bus fault | Crossed, shorted, or open address lines (detected by PRN pattern) | ❌ No diagram | Check address line connections and solder joints |
-| **BAD** | Specific chip failure | Individual chip identified by walking bits test | ✅ Shows failed chip(s) | Replace identified RAM chip(s) |
+| **BUS** | Address bus fault | Crossed, shorted, or open address lines (PRN pattern wrong in several bits at once) | ❌ No diagram | Check address line connections and solder joints |
+| **BAD** | Specific chip failure | Individual chip identified by walking bits, or by a PRN mismatch in a single bit | ✅ Shows failed chip(s) | Replace identified RAM chip(s) |
 
 ### Which boards the chip names apply to
 
@@ -254,7 +260,7 @@ The chip diagram and the flash counts name U9-U12 and U21-U24, the eight 4164 RA
 
 During the initial black screen phase (~10 seconds), failures are indicated by border flashing:
 
-**Chip Failures** - Counted flashes (1-8) indicate which chip failed:
+**Chip Failures** - Counted flashes (1-8) indicate which chip failed ($AA/$55, walking bits, or a PRN mismatch in a single bit):
 - 1 flash = U12 (bit 7)
 - 2 flashes = U24 (bit 6)
 - 3 flashes = U11 (bit 5)
@@ -267,7 +273,7 @@ During the initial black screen phase (~10 seconds), failures are indicated by b
 
 **Bus Failures** - Continuous rapid flashing with no pattern:
 - Fast white/black flashing with no pause between cycles
-- Indicates address bus fault (crossed lines, mirroring, page confusion)
+- PRN pattern wrong in several bits at once: address bus fault (crossed lines, mirroring, page confusion)
 - NOT a chip failure - check motherboard traces and solder connections
 
 ## Burning EPROM & Compatible Cartridge
