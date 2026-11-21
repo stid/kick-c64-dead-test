@@ -27,15 +27,14 @@
 
 
 //=============================================================================
-// LOW RAM TEST - Tests Previously Untested $0200-$03FF Region
+// LOW RAM TEST - Dedicated test for the $0200-$03FF region
 // Tests the 512 bytes between stack page and screen RAM
 //
-// Purpose: Complete RAM coverage of all Ultimax-accessible memory
-//          Using superior test patterns to detect address bus issues
+// Purpose: Give this region an on-screen test of its own, with patterns
+//          that can detect address bus issues
 //
 // Memory Range: $0200-$03FF (512 bytes)
-// - This region was previously skipped by other tests
-// - Essential for completeness in diagnostic cartridge
+// - Before 2.0 only the blind boot-time bank test covered these two pages
 // - Used by BASIC and Kernal for various purposes
 //
 // Test Pattern Philosophy (suggested by Sven Petersen - https://github.com/svenpetersen1965):
@@ -58,7 +57,9 @@
 //          5. Any mismatch indicates RAM or address bus failure
 //
 // On Success: Displays "OK" on screen
-// On Failure: Displays "BAD" with failing address information
+// On Failure: Displays "BIT" (AA/55), "BUS" (PRN) or "BAD" (walking bits) and
+//             halts. BIT and BAD mark the failed chip(s) in the diagram; BUS
+//             marks none. The failing address is not reported.
 //=============================================================================
 lowRamTest: {
                 // Display "LOW RAM" label on screen

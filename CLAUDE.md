@@ -43,8 +43,9 @@ src/
 ⚠️ **MUST FOLLOW - Violations will cause crashes:**
 - **NEVER use JSR/RTS before stack test completes** - Use only JMP instructions
 - **NEVER modify $00-$11** - Reserved for test state variables
-- **ALWAYS maintain test order** - Critical components first (RAM → Stack → Display → ROM → Sound)
-- **Pattern-based testing** - All tests use 20-byte pattern from `data.asm`
+- **ALWAYS maintain test order** - Critical components first (RAM → Stack → Display → Sound)
+- **Pattern-based testing** - RAM tests run AA, 55, the 247-byte PRN sequence, then walking bits; patterns live in `data.asm`
+- **Verify failure paths** - `scripts/test-mode-validation.sh` builds the five `make test-mode*` fault-injection variants and asserts each diagnosis in VICE; run it after touching any test or failure handler
 
 ## Test Flow
 

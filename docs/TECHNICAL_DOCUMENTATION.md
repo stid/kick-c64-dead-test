@@ -228,14 +228,14 @@ This differentiation helps diagnose whether the problem is a failed RAM chip or 
 1. Memory Bank Test: Page-by-page with all patterns
 2. General RAM Test: Byte-by-byte with all patterns
 
-### 8. Font Test
+### 8. Font Load
 
-**Purpose**: Verify custom character set loading
+**Purpose**: Load the custom character set. This is a copy, not a test, and reports no result.
 
-- Copies 512 bytes to character RAM
-- Ensures character generator works
+- Copies 512 bytes from cartridge ROM to $0800
+- The character ROM is not readable in Ultimax mode, so nothing here verifies it
 
-### 8. Sound Test
+### 9. Sound Test
 
 **Purpose**: Test SID chip oscillators and envelopes
 
@@ -246,7 +246,7 @@ This differentiation helps diagnose whether the problem is a failed RAM chip or 
 - Increasing volume per voice (diagnostic aid)
 - ADSR envelope: Attack=3, Decay=E, Sustain=C, Release=A
 
-### 9. Filter Test (Your Addition)
+### 10. Filter Test (added in v1.2.0)
 
 **Purpose**: Test analog filter components
 
@@ -298,16 +298,17 @@ The diagnostic maintains CIA timers for:
 ```text
 1. Initialize (SEI, set processor port)
 2. Black screen memory bank test
-   → Failure: Flash screen N times for chip N
+   → Chip failure: flash N times for chip N, pause, repeat
+   → Bus failure: flash continuously with no count
 3. Draw layout (only after RAM verified)
-4. Zero page test → Show OK/BAD
-5. Stack test → Show OK/BAD
+4. Zero page test → Show OK or BIT/BUS/BAD
+5. Stack test → Show OK or BIT/BUS/BAD
 6. Enable JSR/RTS usage
-7. Low RAM test → Show OK/BAD
+7. Low RAM test → Show OK or BIT/BUS/BAD
 8. Screen RAM test → Show OK/BAD
 9. Color RAM test → Show OK/BAD
-10. General RAM test → Show OK/BAD
-11. Font test (no display)
+10. General RAM test → Show OK or BIT/BAD
+11. Font load (no display)
 12. Sound test (audible)
 13. Filter test (audible sweep)
 14. Increment counter

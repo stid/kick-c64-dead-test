@@ -12,7 +12,7 @@ This guide explains how to simulate failures on real C64 hardware to verify that
 
 ## RAM Chip Identification
 
-The C64 uses **8 RAM chips** (4164 DRAM, 64K x 1-bit each), with each chip providing one bit of the 8-bit data bus:
+The long C64 boards (ASSY 250407, 250425, 250466) use **8 RAM chips** (4164 DRAM, 64K x 1-bit each), with each chip providing one bit of the 8-bit data bus. Boards with different RAM chips, such as the 250469 short board, do not have these U-numbers, and their RAM is usually soldered rather than socketed, so the reseating method below does not apply to them:
 
 | Chip | Data Bit | Bit Mask | Notes |
 |------|----------|----------|-------|
@@ -117,10 +117,10 @@ This is the **safest and most common** method for testing diagnostic tools.
    - Black screen for ~10 seconds (normal)
    - Layout appears
    - Tests run sequentially
-3. **Expected**: One or more tests will show "BAD" instead of "OK"
+3. **Expected**: One or more tests will show "BIT" or "BAD" instead of "OK"
 4. **Expected**: Red "BAD" indicators appear in the chip diagram box showing which chip failed
 5. If testing Low RAM specifically:
-   - Should see "LOW RAM" line with "BAD"
+   - Should see "LOW RAM" line with "BIT" or "BAD"
    - Red "BAD" marker on the chip you lifted (e.g., U21 in lower-left, U9 in lower-right)
 
 #### Step 4: Verify Recovery
@@ -157,12 +157,14 @@ This tests the **PRN sequence** detection in the Low RAM test, which specificall
 ⚠️ **WARNING**: This method can damage your C64 if done incorrectly. Only attempt if you have electronics experience.
 
 1. Power off C64
-2. Identify address lines A8-A15 on RAM chips (see motherboard schematic)
+2. Identify the multiplexed address lines on the RAM chips (see motherboard schematic).
+   A 4164 has eight address pins, A0-A7, which carry the row and then the column address;
+   there are no A8-A15 pins on the chip itself
 3. Using a test clip, temporarily short two adjacent address lines
-   - Example: Short A8 to A9 (will cause page confusion)
 4. Power on with Dead Test
-5. **Expected**: Low RAM test should fail because PRN pattern will be out of phase
-6. **Expected**: May see multiple chips marked as failed due to address confusion
+5. **Expected**: a PRN phase fails. Depending on which lines are shorted this shows as
+   continuous border flashing during the black screen, or as "BUS" on a test line
+6. **Expected**: no chip is marked in the diagram - a BUS verdict never marks one
 7. Power off and remove short
 8. Verify all tests pass again
 
@@ -314,14 +316,15 @@ first bad byte, so the rest of $0800-$0FFF is not checked on that pass.
 
 - **C64 Service Manual**: Complete schematics showing RAM chip locations
 - **Dead Test Source Code**: `src/low_ram_test.asm` shows exactly what's tested
-- **Software Test Mode**: Three builds exercise the failure paths without
+- **Software Test Mode**: Five builds exercise the failure paths without
   hardware risk. `make test-mode` (Low RAM `$AA` phase) and
   `make test-mode-walking` (Low RAM walking bits) both simulate a bit 0 / U21
-  failure and are checked on screen. `make test-mode-bank` simulates a two-bit
-  failure in the Memory Bank test, which fails before the display exists — there
-  the border flash count is the whole diagnosis, and it is checked by reading the
-  count back. `scripts/test-mode-validation.sh` builds and runs all three under
-  VICE and asserts the diagnosis each one reports.
+  failure, and `make test-mode-prn` simulates a Low RAM bus fault; all three are
+  checked on screen. `make test-mode-bank` simulates a two-bit failure in the
+  Memory Bank test and `make test-mode-bank-bus` a bus fault there. Those two fail
+  before the display exists, so the border flash is the whole diagnosis and it is
+  checked by reading a probe byte back. `scripts/test-mode-validation.sh` builds
+  and runs all five under VICE and asserts the diagnosis each one reports.
 - **Community Forums**: Share your testing results and ask questions
 
 ## Questions?

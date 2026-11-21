@@ -402,7 +402,7 @@ else
     echo -e "${YELLOW}⚠️  TEST_MODE validation INCOMPLETE${NC}"
     echo
     echo "Summary:"
-    echo "  ✓ Both TEST_MODE builds compiled"
+    echo "  ✓ All $MODES_RUN TEST_MODE builds compiled"
     echo "  ⚠️ Screenshots captured for $SCREENSHOTS_CAPTURED of $MODES_RUN modes"
     echo "  ⚠️ Screen contents verified for $SCREENS_VERIFIED of $MODES_RUN modes"
     echo

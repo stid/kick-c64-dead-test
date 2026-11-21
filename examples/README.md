@@ -1,100 +1,68 @@
-# Examples and Guides
+# Quick reference
 
-This directory contains practical examples and guides for using the C64 Dead Test diagnostic.
+A short guide to reading the Dead Test's output. For the full explanation of each verdict see the [readme](../readme.md#understanding-error-messages).
 
-## Directory Structure
+## Which chip is which bit
 
-### test-outputs/
-Screenshots and photos showing various test results, including:
-- Normal test completion (all tests pass)
-- Common RAM failures with chip identification
-- Sound and filter test patterns
-- Color reference bar examples
+Each of the eight 4164 RAM chips holds one data bit. This mapping applies to the long C64 boards (ASSY 250407, 250425, 250466). Boards that use different RAM chips, such as the 250469 short board, do not have these U-numbers.
 
-### common-failures/
-Guide to interpreting common failure modes:
-- RAM chip failure patterns
-- How to identify which physical chip failed
-- Interpreting border flash codes
-- Understanding test sequence failures
+| Data bit | Chip | Border flashes (black screen) |
+| -------- | ---- | ----------------------------- |
+| Bit 7    | U12  | 1                             |
+| Bit 6    | U24  | 2                             |
+| Bit 5    | U11  | 3                             |
+| Bit 4    | U23  | 4                             |
+| Bit 3    | U10  | 5                             |
+| Bit 2    | U22  | 6                             |
+| Bit 1    | U9   | 7                             |
+| Bit 0    | U21  | 8                             |
 
-### eprom-burning/
-Step-by-step guide for creating physical cartridges:
-- EPROM selection (27C64, 27C128, 27C256, 27C512)
-- Programmer settings and software
-- Cartridge PCB options
-- Jumper configurations for Ultimax mode
+The on-screen diagram draws the chips in two columns, U9 to U12 on the left and U21 to U24 on the right, and writes a red "BAD" over each failed one.
 
-## Quick Reference
+## Border flashes during the black screen
 
-### Chip Identification Map
-When a RAM test fails, the diagnostic identifies the failed chip:
+If the initial memory bank test fails there is no display, so the border flash is the whole diagnosis:
 
-```
-Memory Layout (looking at C64 motherboard):
-+--------+--------+--------+--------+
-| U12    | U24    | U11    | U23    |
-| Bit 7  | Bit 6  | Bit 5  | Bit 4  |
-+--------+--------+--------+--------+
-| U10    | U22    | U9     | U21    |
-| Bit 3  | Bit 2  | Bit 1  | Bit 0  |
-+--------+--------+--------+--------+
-```
+- **N flashes, pause, repeat**: the chip in the table above failed. With several bad bits only the lowest one is reported, so after replacing that chip the count may change to the next one.
+- **Continuous flashing, no pause**: address bus fault. No single chip is identified.
 
-### Border Flash Count
-If the initial memory bank test fails:
-- 1 flash = U21 (Bit 0)
-- 2 flashes = U9 (Bit 1)
-- 3 flashes = U22 (Bit 2)
-- 4 flashes = U10 (Bit 3)
-- 5 flashes = U23 (Bit 4)
-- 6 flashes = U11 (Bit 5)
-- 7 flashes = U24 (Bit 6)
-- 8 flashes = U12 (Bit 7)
+## Test sequence
 
-### Test Sequence
-1. **Black screen** (~10 seconds) - Memory bank test
-2. **Display appears** - RAM passed initial test
-3. **Tests run in order** showing OK/BAD for each
+1. **Black screen** (~10 seconds): memory bank test
+2. **Display appears**: RAM passed the initial test
+3. **Tests run in order**, each showing OK or one of BIT, BUS, BAD
 4. **Border color changes** with each iteration
-5. **Counter increments** at bottom of screen
+5. **Counter increments** at the bottom of the screen
 
-## Common Issues and Solutions
+## Common issues
 
-### No Display (Black Screen Forever)
-- Severe RAM failure in lower memory
-- Count border flashes to identify failed chip
-- Check U21-U24 and U9-U12
+### No display (black screen forever)
 
-### Display Corrupted
+- RAM failure in lower memory: read the border flashes as described above
+- No flashing at all points away from RAM (power, CPU, PLA, VIC-II, the cartridge itself)
+
+### Display corrupted
+
 - Screen RAM failure ($0400-$07FF)
 - Color RAM failure ($D800-$DBFF)
 - VIC-II issues
 
-### No Sound During Sound Test
+### No sound during sound test
+
 - SID chip failure
-- Check voltage on SID (9V/12V depending on model)
-- Try both 6581 and 8580 if available
+- Check the SID supply voltage (12V for 6581, 9V for 8580)
 
-### Filter Test Silent
-- Analog filter components degraded
-- Common on older 6581 SIDs
-- Capacitors may need replacement
+### Filter test silent
 
-## Tips for Hardware Testing
+- Analog filter components degraded, common on older 6581 SIDs
 
-1. **Always test with known good power supply first**
-2. **Remove all peripherals during testing**
-3. **Let the system warm up for accurate results**
-4. **Run multiple iterations to catch intermittent failures**
-5. **Document which chips are flagged across multiple runs**
+## Tips for hardware testing
 
-## Contributing Examples
+1. Test with a known good power supply first
+2. Remove all peripherals during testing
+3. Run multiple iterations to catch intermittent failures
+4. Note which chips are flagged across runs
 
-If you have documented test results or failure cases, please consider contributing:
-1. Take clear photos/screenshots
-2. Note the hardware configuration
-3. Document what was actually wrong (if determined)
-4. Submit via GitHub issue or pull request
+## Contributing examples
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for more details.
+Photos of real failures with a confirmed cause are welcome: note the board revision, what the screen or border showed, and what the fault turned out to be. Submit them through a GitHub issue or pull request. See [CONTRIBUTING.md](../CONTRIBUTING.md).
