@@ -93,8 +93,11 @@ make help         # Show all available commands
 # Use custom KickAssembler path
 make KICKASS_BIN=/path/to/KickAss.jar
 
-# Run with VICE monitor for debugging
+# Run in VICE with the source labels loaded into the monitor
 make debug
+
+# Run the fault-injection suite (asserts every diagnosis in VICE)
+make test
 
 # Check if all required tools are installed
 make check-tools

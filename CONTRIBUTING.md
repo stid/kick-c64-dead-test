@@ -84,7 +84,7 @@ jmp nextTest    // Cannot use JSR until stack verified
 make clean
 make
 make run        # Test in VICE
-./scripts/test-mode-validation.sh   # Fault-injection builds: asserts each diagnosis
+make test       # Fault-injection builds: asserts each diagnosis in VICE
 ```
 
 Verify:

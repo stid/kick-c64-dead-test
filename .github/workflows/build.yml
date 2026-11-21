@@ -49,6 +49,11 @@ jobs:
         mkdir -p /tmp/KickAssembler
         cd /tmp/KickAssembler
         wget -q https://theweb.dk/KickAssembler/KickAssembler.zip
+        # The download URL is unversioned, so pin by checksum: this is the
+        # v5.25 archive. If upstream publishes a new version this step fails
+        # instead of silently changing the assembler that builds releases.
+        # To upgrade: update the checksum here (both jobs) and the cache key.
+        echo "9ef752c12b25f64b55bafecfabf23dfc90a8216b1a293548b2147ed7c15f55a6  KickAssembler.zip" | sha256sum -c -
         unzip -q KickAssembler.zip
         rm KickAssembler.zip
     
@@ -195,6 +200,11 @@ jobs:
         mkdir -p /tmp/KickAssembler
         cd /tmp/KickAssembler
         wget -q https://theweb.dk/KickAssembler/KickAssembler.zip
+        # The download URL is unversioned, so pin by checksum: this is the
+        # v5.25 archive. If upstream publishes a new version this step fails
+        # instead of silently changing the assembler that builds releases.
+        # To upgrade: update the checksum here (both jobs) and the cache key.
+        echo "9ef752c12b25f64b55bafecfabf23dfc90a8216b1a293548b2147ed7c15f55a6  KickAssembler.zip" | sha256sum -c -
         unzip -q KickAssembler.zip
         rm KickAssembler.zip
 

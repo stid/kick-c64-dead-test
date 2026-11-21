@@ -7,7 +7,8 @@ Commodore 64 hardware diagnostic tool running as Ultimax cartridge ($E000-$FFFF)
 ```bash
 make         # Build .prg, .crt, and .bin files
 make run     # Launch the currently built cartridge in VICE (make build-and-run to do both)
-make debug   # Build and run with VICE monitor
+make debug   # Run the built cartridge in VICE with source labels in the monitor
+make test    # Fault-injection suite: asserts every diagnosis in VICE, then rebuilds the normal cartridge
 make clean   # Remove all build artifacts
 make help    # Show all available targets
 ```
@@ -45,7 +46,7 @@ src/
 - **NEVER modify $00-$11** - Reserved for test state variables
 - **ALWAYS maintain test order** - Critical components first (RAM → Stack → Display → Sound)
 - **Pattern-based testing** - RAM tests run AA, 55, the 247-byte PRN sequence, then walking bits; patterns live in `data.asm`
-- **Verify failure paths** - `scripts/test-mode-validation.sh` builds the eight `make test-mode*` fault-injection variants and asserts each diagnosis in VICE; run it after touching any test or failure handler
+- **Verify failure paths** - `make test` (`scripts/test-mode-validation.sh`) builds the eight `make test-mode*` fault-injection variants and asserts each diagnosis in VICE; run it after touching any test or failure handler
 
 ## Test Flow
 
