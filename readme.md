@@ -189,6 +189,8 @@ create. No amount of CI closes this gap; only real broken hardware does.
 
 That is why this is a beta. If you run it against a machine whose fault you have already
 confirmed by other means, a report either way is genuinely useful.
+[docs/BETA_VALIDATION.md](docs/BETA_VALIDATION.md) lists the hardware checks that stand
+between this beta and 2.0.0, with the expected result for each.
 
 ## Differences from the Original rev. 781220 Dead Test
 
@@ -301,6 +303,7 @@ You can definitely try to build your [own](http://blog.worldofjani.com/?p=879).
 ## Documentation
 
 - [Technical Documentation](docs/TECHNICAL_DOCUMENTATION.md) - Detailed test algorithms and hardware information
+- [Beta validation](docs/BETA_VALIDATION.md) - Real-hardware checks still needed before 2.0.0
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Guidelines for contributors
 - [CHANGELOG.md](CHANGELOG.md) - Version history and changes
 - [LICENSE](LICENSE) - MIT license covering this project's own code
