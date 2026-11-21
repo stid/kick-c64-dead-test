@@ -7,7 +7,7 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 
 ## [Unreleased]
 
-## [2.0.0-beta.2] - not yet tagged
+## [2.0.0-beta.2] - 2026-11-21
 
 ### Changed
 - **A PRN mismatch in a single bit now identifies that chip.** beta.1 reported every PRN
