@@ -149,7 +149,7 @@ assert_screen() {
     # cycle limit and the kill -0 check ends the wait early.
     local dump_size=1002
     local waited=0
-    while [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt "$dump_size" ] \
+    while [ "$({ wc -c < "$dump"; } 2>/dev/null || echo 0)" -lt "$dump_size" ] \
           && [ "$waited" -lt 120 ]; do
         sleep 1
         waited=$((waited + 1))
@@ -158,7 +158,7 @@ assert_screen() {
     kill "$vice_pid" 2>/dev/null || true
     wait "$vice_pid" 2>/dev/null || true
 
-    if [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt "$dump_size" ]; then
+    if [ "$({ wc -c < "$dump"; } 2>/dev/null || echo 0)" -lt "$dump_size" ]; then
         echo -e "${RED}❌ No complete screen dump for $label${NC}"
         echo "   The halt loop was never reached: the diagnostic did not report"
         echo "   a failure, or never got that far."
@@ -233,7 +233,7 @@ run_bank_mode() {
 
     # 3 = 2-byte load address + the single probe byte.
     local waited=0
-    while [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt 3 ] && [ "$waited" -lt 120 ]; do
+    while [ "$({ wc -c < "$dump"; } 2>/dev/null || echo 0)" -lt 3 ] && [ "$waited" -lt 120 ]; do
         sleep 1
         waited=$((waited + 1))
         kill -0 "$vice_pid" 2>/dev/null || break
@@ -241,7 +241,7 @@ run_bank_mode() {
     kill "$vice_pid" 2>/dev/null || true
     wait "$vice_pid" 2>/dev/null || true
 
-    if [ "$(wc -c < "$dump" 2>/dev/null || echo 0)" -lt 3 ]; then
+    if [ "$({ wc -c < "$dump"; } 2>/dev/null || echo 0)" -lt 3 ]; then
         echo -e "${RED}❌ No probe written for $label${NC}"
         echo "   The flash path was never reached: the Memory Bank test did not fail."
         tail -20 "/tmp/vice-${target}.log" 2>/dev/null | sed 's/^/     /'

@@ -28,6 +28,15 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
 - Changelog dates for 1.1.0, 1.2.0 and 2.0.0-beta.1.
 - Docs now say the chip names apply to the eight-4164 long boards only.
 
+### Build
+- `make test` runs the fault-injection suite and fails on a wrong diagnosis. It used to
+  take one screenshot and always pass.
+- `make debug` loads the source labels into the VICE monitor. It used to look for a
+  monitor file nothing created.
+- `make release` produces the same files and names as the CI release job.
+- CI verifies the KickAssembler download against a checksum (v5.25), so the assembler
+  that builds a release cannot change unnoticed.
+
 ### Testing
 - `make test-mode-color` covers the Color RAM failure path, which had no test.
 - Two more fault-injection builds, `make test-mode-prn-chip` and

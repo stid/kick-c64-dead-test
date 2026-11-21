@@ -20,7 +20,12 @@ BIN_FILE = $(BUILD_PATH)/$(PROJECT_NAME).bin
 LOG_FILE = $(BUILD_PATH)/buildlog.txt
 
 # KickAssembler options
-KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem
+# -symbolfile writes main.sym, which scripts/test-mode-validation.sh reads to
+# find its breakpoint addresses. It is stated here rather than left to the
+# KickAss.cfg that happens to ship next to the jar.
+# -vicesymbols writes main.vs, the label file 'make debug' loads into VICE.
+KICKASS_OPTS = -odir ../$(BUILD_PATH) -log ./$(LOG_FILE) -showmem -symbolfile -vicesymbols
+VICE_LABELS = $(BUILD_PATH)/main.vs
 
 # Version
 VERSION ?= 2.0.0-beta.2
@@ -81,12 +86,15 @@ run:
 # Build and run in one step
 build-and-run: build run
 
-# Run with debug options (runs whatever is currently built)
+# Run with the source labels loaded into the VICE monitor (runs whatever is
+# currently built). Open the monitor from the VICE menu; labels such as
+# .mainLoop or .deadLoop then resolve, e.g. "break .deadLoop".
 debug:
-	@echo "Starting $(PROJECT_NAME) in VICE with monitor..."
+	@echo "Starting $(PROJECT_NAME) in VICE with labels from $(VICE_LABELS)..."
 	@command -v $(X64SC) >/dev/null 2>&1 || { echo "Error: x64sc not found. Please install VICE."; exit 1; }
 	@test -f $(CRT_FILE) || { echo "Error: No cartridge file found. Run 'make' or 'make test-mode' first."; exit 1; }
-	@$(X64SC) -moncommands $(BUILD_PATH)/monitor.txt $(CRT_FILE) 2>/dev/null || $(X64SC) $(CRT_FILE)
+	@test -f $(VICE_LABELS) || { echo "Error: $(VICE_LABELS) not found. Run 'make' first."; exit 1; }
+	@$(X64SC) -moncommands $(VICE_LABELS) $(CRT_FILE)
 
 # Build with test mode enabled (simulates RAM failure for validation)
 test-mode: check-tools $(BUILD_PATH)
@@ -240,28 +248,29 @@ clean:
 	@rm -rf $(BUILD_PATH)
 	@echo "Clean complete."
 
-# Test in emulator (automated)
-test: build
-	@echo "Running automated test in VICE..."
-	@command -v $(X64SC) >/dev/null 2>&1 || { echo "Error: x64sc not found. Please install VICE."; exit 1; }
-	@echo "Starting test run (will timeout after 30 seconds)..."
-	@timeout 30s $(X64SC) -default -warp -exitscreenshot $(BUILD_PATH)/test-result.png $(CRT_FILE) 2>/dev/null || true
-	@if [ -f $(BUILD_PATH)/test-result.png ]; then \
-		echo "Test completed - screenshot saved to $(BUILD_PATH)/test-result.png"; \
-	else \
-		echo "Test completed - no screenshot generated"; \
-	fi
+# Run the fault-injection suite: builds every test-mode variant, runs each in
+# VICE and asserts the diagnosis it reports. Fails if any diagnosis is wrong.
+# The suite leaves a fault-injection build in bin/, so the normal cartridge is
+# rebuilt afterwards - a test-mode image must never be the one that gets burned.
+test: check-tools
+	@KICKASS_BIN="$(KICKASS_BIN)" ./scripts/test-mode-validation.sh
+	@$(MAKE) --no-print-directory clean build >/dev/null
+	@echo "Normal cartridge rebuilt in $(BUILD_PATH)/."
 
-# Create release package
+# Create a local release package with the same files and names the CI release
+# job publishes for a v$(VERSION) tag: the .crt and .bin on their own, plus a
+# .zip and .tar.gz holding bin/main.prg, bin/dead-test.crt and bin/dead-test.bin.
+# Published releases come from CI (push a v* tag); this is for checking the
+# package locally.
 release: clean build
 	@echo "Creating release package v$(VERSION)..."
+	@rm -rf releases
 	@mkdir -p releases
-	@cp $(BIN_FILE) releases/dead-test-v$(VERSION).bin
-	@cp $(CRT_FILE) releases/dead-test-v$(VERSION).crt
-	@cp $(PRG_FILE) releases/dead-test-v$(VERSION).prg
-	@cd releases && zip dead-test-v$(VERSION).zip dead-test-v$(VERSION).*
-	@echo "Release package created: releases/dead-test-v$(VERSION).zip"
-	@ls -la releases/dead-test-v$(VERSION).*
+	@zip -q releases/dead-test-v$(VERSION).zip $(PRG_FILE) $(CRT_FILE) $(BIN_FILE)
+	@tar -czf releases/dead-test-v$(VERSION).tar.gz $(PRG_FILE) $(CRT_FILE) $(BIN_FILE)
+	@cp $(CRT_FILE) $(BIN_FILE) releases/
+	@echo "Release package created in releases/:"
+	@ls -la releases/
 
 # Check code style (basic validation)
 check: $(SRC_PATH)/*.asm
@@ -289,8 +298,8 @@ help:
 	@echo "  build        - Compile and create .prg, .crt, and .bin files"
 	@echo "  run          - Run currently built cartridge in VICE emulator"
 	@echo "  build-and-run - Build and run in one step"
-	@echo "  debug        - Run with VICE monitor (no rebuild)"
-	@echo "  test         - Run automated test in VICE"
+	@echo "  debug        - Run in VICE with source labels loaded into the monitor (no rebuild)"
+	@echo "  test         - Run the fault-injection suite in VICE and assert each diagnosis"
 	@echo "  clean        - Remove all build artifacts"
 	@echo ""
 	@echo "Development Targets:"
@@ -304,7 +313,7 @@ help:
 	@echo "  test-mode-color - Build with simulated Color RAM failure (BAD, no chip marked)"
 	@echo "  check        - Basic code style validation"
 	@echo "  check-tools  - Verify required tools are installed"
-	@echo "  release      - Create release package (v$(VERSION))"
+	@echo "  release      - Create local release package matching CI (v$(VERSION))"
 	@echo "  version      - Show current version"
 	@echo "  help         - Show this help message"
 	@echo ""
@@ -319,7 +328,7 @@ help:
 	@echo "  make                    # Build the project"
 	@echo "  make build-and-run      # Build and run in emulator"
 	@echo "  make test-mode && make run  # Test RAM failure simulation"
-	@echo "  make test               # Run automated test"
+	@echo "  make test               # Run the fault-injection suite"
 	@echo "  make release            # Create release package"
 	@echo "  make VERSION=2.0.1 release  # Create release with custom version"
 	@echo "  make KICKASS_BIN=/path/to/KickAss.jar  # Use custom KickAssembler path"
