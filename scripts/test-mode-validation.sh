@@ -4,7 +4,7 @@
 # Validates that TEST_MODE builds correctly simulate a RAM failure and that the
 # diagnostic identifies the failing chip.
 #
-# Seven builds are validated - one per distinct diagnostic signal the cartridge
+# Eight builds are validated - one per distinct diagnostic signal the cartridge
 # can produce. Each needs its own build, because tests run in order and the
 # first failure halts the diagnostic:
 #
@@ -12,6 +12,7 @@
 #   test-mode-walking   -> Low RAM walking    -> "LOW RAM BAD", U21 marked
 #   test-mode-prn       -> Low RAM PRN, 2 bits -> "LOW RAM BUS", NO chip marked
 #   test-mode-prn-chip  -> Low RAM PRN, 1 bit  -> "LOW RAM BAD", U21 marked
+#   test-mode-color     -> Color RAM          -> "COLOR RAM BAD", NO chip marked
 #   test-mode-bank      -> Mem Bank $AA       -> border flashes 8 times
 #   test-mode-bank-bus  -> Mem Bank PRN, 2 bits -> border flashes continuously
 #   test-mode-bank-prn-chip -> Mem Bank PRN, 1 bit -> border flashes 6 times
@@ -112,6 +113,7 @@ assert_screen() {
     local dump="$3"
     local expected="$4"
     local chips="$5"
+    local status_offset="${6:-AD}"
 
     # Label addresses shift between builds, so take deadLoop from this build.
     local dead_loop
@@ -131,7 +133,7 @@ assert_screen() {
         -default \
         -cartcrt bin/dead-test.crt \
         -warp \
-        -limitcycles 40000000 \
+        -limitcycles 90000000 \
         +confirmonexit \
         -moncommands "$moncmds" \
         > "/tmp/vice-${target}-dump.log" 2>&1 &
@@ -164,7 +166,7 @@ assert_screen() {
         return 1
     fi
 
-    if ! python3 scripts/check-screen-dump.py "$dump" "$expected" "$chips"; then
+    if ! python3 scripts/check-screen-dump.py "$dump" "$expected" "$chips" "$status_offset"; then
         echo -e "${RED}❌ Screen contents wrong for $label${NC}"
         return 1
     fi
@@ -295,7 +297,7 @@ run_bank_mode() {
     echo
 }
 
-# run_mode <make-target> <label> <screenshot path> <status word> [chip expectation]
+# run_mode <make-target> <label> <screenshot path> <status word> [chip expectation] [status offset]
 # chip expectation: U21 (default) or NONE - NONE is correct for a bus fault,
 # which must not blame a chip.
 run_mode() {
@@ -304,6 +306,7 @@ run_mode() {
     local shot="$3"
     local expected="$4"
     local chips="${5:-U21}"
+    local status_offset="${6:-AD}"
 
     MODES_RUN=$((MODES_RUN + 1))
 
@@ -322,11 +325,14 @@ run_mode() {
     echo "✓ Cartridge file exists"
 
     echo -e "${BLUE}🖥️  Running $label in VICE...${NC}"
-    echo "   ~25s of emulated time (black screen memory bank test alone is ~10s)"
+    echo "   ~75s of emulated time: the Color RAM test only starts after the"
+    echo "   bank, zero page, stack, low RAM and screen RAM tests (~50s in)"
 
     rm -f "$shot"
 
-    # -limitcycles gives a clean exit; ~985,248 cycles/sec, so 25M ≈ 25 seconds.
+    # -limitcycles gives a clean exit; ~985,248 cycles/sec, so 75M ≈ 75 seconds.
+    # Long enough for the latest-failing mode (Color RAM); earlier failures
+    # just sit in the halt loop until the limit.
     # NOTE: +confirmonexit, not "-confirmonexit 0". It is a boolean flag with no
     # value - passing "0" made VICE treat it as a positional argument and silently
     # discard every option after it, including -exitscreenshot. That is why this
@@ -335,7 +341,7 @@ run_mode() {
         -default \
         -cartcrt bin/dead-test.crt \
         -warp \
-        -limitcycles 25000000 \
+        -limitcycles 75000000 \
         +confirmonexit \
         -exitscreenshot "$shot" \
         > "/tmp/vice-${target}.log" 2>&1 || true
@@ -380,7 +386,7 @@ run_mode() {
     # VICE clearly works at this point, so a wrong screen is a real regression -
     # always a hard failure, not gated on REQUIRE_SCREENSHOT.
     echo -e "${BLUE}🔎 Verifying screen contents for $label...${NC}"
-    if ! assert_screen "$target" "$label" "${shot%.png}-screen.bin" "$expected" "$chips"; then
+    if ! assert_screen "$target" "$label" "${shot%.png}-screen.bin" "$expected" "$chips" "$status_offset"; then
         exit 1
     fi
     SCREENS_VERIFIED=$((SCREENS_VERIFIED + 1))
@@ -391,6 +397,7 @@ run_mode test-mode         "\$AA phase failure"   "$SHOT_DIR/test-mode-aa.png"  
 run_mode test-mode-walking "walking bits failure" "$SHOT_DIR/test-mode-walking.png" BAD
 run_mode test-mode-prn     "Low RAM bus fault"    "$SHOT_DIR/test-mode-prn.png"     BUS NONE
 run_mode test-mode-prn-chip "Low RAM single-bit PRN fault" "$SHOT_DIR/test-mode-prn-chip.png" BAD
+run_mode test-mode-color "Color RAM failure" "$SHOT_DIR/test-mode-color.png" BAD NONE FD
 run_bank_mode test-mode-bank     "memory bank two-bit failure" 8   "bank 8 = U21"               flashLoop
 run_bank_mode test-mode-bank-bus "memory bank bus fault"       255 "continuous flash, no count" busFlashLoop
 run_bank_mode test-mode-bank-prn-chip "memory bank single-bit PRN fault" 6 "bank 6 = U22" flashLoop

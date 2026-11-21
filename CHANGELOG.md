@@ -20,11 +20,16 @@ and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
   fail, and covered by injected faults in the emulator; not yet seen on real hardware.
 
 ### Fixed
+- **A Color RAM failure no longer marks main RAM chips.** It used to write "BAD" over U21,
+  U9, U22 or U10 in the chip diagram, although the faulty part is the separate color RAM
+  chip. This was already the case in v1.2.0. It now shows "COLOR RAM BAD" and halts with
+  the diagram empty.
 - `examples/README.md` had the border flash table inverted (1 flash is U12, not U21).
 - Changelog dates for 1.1.0, 1.2.0 and 2.0.0-beta.1.
 - Docs now say the chip names apply to the eight-4164 long boards only.
 
 ### Testing
+- `make test-mode-color` covers the Color RAM failure path, which had no test.
 - Two more fault-injection builds, `make test-mode-prn-chip` and
   `make test-mode-bank-prn-chip`, cover the single-bit PRN path. The two existing bus
   builds now inject a two-bit fault so they still exercise "BUS".

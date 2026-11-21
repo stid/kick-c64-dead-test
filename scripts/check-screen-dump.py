@@ -7,7 +7,7 @@ produces a perfectly valid PNG. This reads the screen codes straight out of
 a $0400-$07E7 dump taken by a VICE monitor checkpoint on the halt loop, so
 the failing chip really is verified.
 
-Usage: check-screen-dump.py <dump.bin> <expected-status-word> [chip-expectation]
+Usage: check-screen-dump.py <dump.bin> <expected-status-word> [chip-expectation] [status-offset-hex]
 
 chip-expectation is "U21" (default) to require U21 marked BAD, or "NONE" to
 require the whole chip diagram to be blank. NONE is the deliberate behaviour
@@ -16,6 +16,9 @@ technician to replace a part that is fine.
 
 The dump is a VICE monitor "save" file: a 2-byte little-endian load address
 followed by the 1000 bytes of screen RAM.
+
+status-offset-hex is where the status word sits in screen RAM. It defaults to
+AD, the Low RAM line; pass FD for the Color RAM line.
 """
 
 import sys
@@ -92,12 +95,13 @@ def read_word(screen, offset, length=3):
 
 
 def main():
-    if len(sys.argv) not in (3, 4):
+    if len(sys.argv) not in (3, 4, 5):
         print(__doc__)
         return 2
 
     path, expected_status = sys.argv[1], sys.argv[2].upper()
-    chip_expectation = (sys.argv[3].upper() if len(sys.argv) == 4 else "U21")
+    chip_expectation = (sys.argv[3].upper() if len(sys.argv) >= 4 else "U21")
+    status_offset = int(sys.argv[4], 16) if len(sys.argv) == 5 else STATUS_OFFSET
 
     with open(path, "rb") as f:
         raw = f.read()
@@ -122,11 +126,12 @@ def main():
 
     ok = check_version_banner(screen)
 
-    status = read_word(screen, STATUS_OFFSET)
+    status = read_word(screen, status_offset)
+    where = f"Status at +${status_offset:02X}"
     if status == expected_status:
-        print(f"   ✓ Low RAM status reads {status!r}")
+        print(f"   ✓ {where} reads {status!r}")
     else:
-        print(f"❌ Low RAM status reads {status!r}, expected {expected_status!r}")
+        print(f"❌ {where} reads {status!r}, expected {expected_status!r}")
         ok = False
 
     if chip_expectation == "NONE":
@@ -134,10 +139,10 @@ def main():
                   for name, off in CHIP_CELLS.items()
                   if read_word(screen, off).strip()}
         if not marked:
-            print("   ✓ Chip diagram is blank, as a bus fault requires")
+            print("   ✓ Chip diagram is blank, as this failure requires")
         else:
             print(f"❌ Chip diagram marks {sorted(marked)}, expected none")
-            print("   A bus fault is not a chip failure. Marking a chip here")
+            print("   This failure is not a main RAM chip. Marking a chip here")
             print("   sends a technician to replace a part that is fine.")
             ok = False
     else:
